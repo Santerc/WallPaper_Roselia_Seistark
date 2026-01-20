@@ -65,7 +65,7 @@ body, html {
     backdrop-filter: blur(8px);
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 
-        0 0 25px rgba(100, 100, 255, 0.2), 
+        0 0 25px rgba(220, 190, 255, 0.4), 
         inset 0 0 30px rgba(255, 255, 255, 0.05);
     transform: rotate(45deg); 
     display: flex; justify-content: center; align-items: center;
@@ -84,7 +84,7 @@ body, html {
     border: 2px solid rgba(255,255,255,0.3);
     transform: rotate(15deg); /* Slight offset rotation */
     transition: all 1s ease-in-out;
-    box-shadow: 0 0 15px rgba(162, 155, 254, 0.5); /* Glowing core */
+    box-shadow: 0 0 15px rgba(220, 180, 255, 0.6); /* Glowing core */
 }
 /* Outer Rim - Pulse */
 .crystal-menu-btn::after {
@@ -100,12 +100,12 @@ body, html {
     transform: rotate(225deg) scale(1.15); 
     background: rgba(255, 255, 255, 0.15);
     border-color: #fff;
-    box-shadow: 0 0 60px rgba(100, 200, 255, 0.8);
+    box-shadow: 0 0 60px rgba(220, 180, 255, 0.8);
 }
 .crystal-menu-btn:hover::before {
     transform: rotate(180deg) scale(0.8);
-    border-color: #00d2d3;
-    box-shadow: 0 0 25px rgba(0, 210, 211, 0.8);
+    border-color: #e0afff;
+    box-shadow: 0 0 25px rgba(220, 180, 255, 1.0);
 }
 
 @keyframes crystal-pulse {
@@ -152,8 +152,10 @@ body, html {
     top: 0; left: 0;
     
     display: flex; align-items: center; justify-content: center;
-    background: linear-gradient(135deg, rgba(30, 30, 45, 0.8) 0%, rgba(60, 60, 75, 0.5) 100%);
-    border: 1px solid rgba(255,255,255,0.2);
+    /* Whole Reflective Surface */
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0.05) 100%);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255,255,255,0.6);
     
     padding: 0; 
     width: 90px; height: 90px; 
@@ -170,7 +172,8 @@ body, html {
         opacity 0.2s cubic-bezier(0.4, 0, 0.2, 1),
         filter 0.3s ease-out;
         
-    box-shadow: 0 0 0 rgba(255,255,255,0);
+    /* Soft White Glow */
+    box-shadow: 0 0 15px rgba(255,255,255,0.4);
 }
 
 /* 激活态：炸裂扩散 + 闪光 + 悬浮呼吸 */
@@ -217,7 +220,6 @@ body, html {
 /* Item 1: 正左方 (第一行) */
 .shard-item:nth-child(1) {
     clip-path: polygon(100% 0, 0 20%, 30% 100%, 100% 80%);
-    border-right: 3px solid #a29bfe;
 }
 .app-dock.active .shard-item:nth-child(1) {
     /* 向左平移约 150px */
@@ -227,7 +229,6 @@ body, html {
 /* Item 2: 左下方 (第二行) */
 .shard-item:nth-child(2) {
     clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 30%);
-    border-right: 3px solid #74b9ff;
     width: 100px;
 }
 .app-dock.active .shard-item:nth-child(2) {
@@ -238,7 +239,6 @@ body, html {
 /* Item 3: 正下方 (第一列) */
 .shard-item:nth-child(3) {
     clip-path: polygon(0 0, 100% 0, 50% 100%);
-    border-top: 3px solid #00d2d3;
     height: 80px;
 }
 .app-dock.active .shard-item:nth-child(3) {
@@ -249,7 +249,6 @@ body, html {
 /* Item 4: 远左上方 (避免与 Item 1 重叠) */
 .shard-item:nth-child(4) {
     clip-path: polygon(20% 0, 100% 0, 80% 100%, 0 80%);
-    border-left: 3px solid #ff7675;
 }
 .app-dock.active .shard-item:nth-child(4) {
     /* 强力推向左侧更远端，防止挤在 Item 1 上方 */
@@ -261,7 +260,6 @@ body, html {
 .shard-item:nth-child(5) {
     clip-path: polygon(0 20%, 100% 0, 100% 100%, 20% 80%);
     width: 80px; height: 80px;
-    border-right: 3px solid #ffeaa7;
 }
 .app-dock.active .shard-item:nth-child(5) {
     /* 填充 Item 1 和 Item 2 左侧的空隙 */
@@ -271,7 +269,6 @@ body, html {
 /* Item 6: 远左下 (第三列) */
 .shard-item:nth-child(6) {
     clip-path: polygon(0 0, 100% 30%, 80% 100%, 0 80%);
-    border-left: 3px solid #55efc4;
 }
 .app-dock.active .shard-item:nth-child(6) {
     transform: translate(-180px, 200px) rotate(-5deg) scale(1);
@@ -280,7 +277,6 @@ body, html {
 /* Item 7: 极远下方 */
 .shard-item:nth-child(7) {
     clip-path: polygon(20% 0, 100% 0, 70% 100%, 0% 100%);
-    border-bottom: 3px solid #fab1a0;
 }
 .app-dock.active .shard-item:nth-child(7) {
     transform: translate(-40px, 280px) rotate(20deg) scale(1);
