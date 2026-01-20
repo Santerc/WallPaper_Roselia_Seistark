@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Liquid Dream Interface</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div id="bg-layer"></div>
+    
+    <canvas id="sakura-canvas"></canvas>
+
+    <div class="widget-time">
+        <h1 id="clock">00:00</h1>
+        <p id="date">LOADING...</p>
+    </div>
+
+    <div class="liquid-container">
+        <!-- 灵动球改为水晶按钮 -->
+        <div class="crystal-menu-btn" id="main-orb" onclick="toggleDock()" title="展开菜单">
+            <div class="crystal-content">
+                <div class="status-dot" id="status-indicator"></div>
+            </div>
+        </div>
+
+        <!-- 动态生成的 App Dock -->
+        <div class="app-dock" id="app-dock">
+            <!-- JS 将会在这里注入 .shard-item -->
+        </div>
+    </div>
+
+    <!-- 音乐控件保持位置 -->
+    <div class="music-widget">
+        <!-- Visualizer Canvas -->
+        <canvas id="audio-visualizer" width="120" height="40"></canvas>
+        
+        <div class="album-cover" id="album-art" onclick="launchMusicApp()">
+            <!-- Roselia Icon Layer -->
+            <div class="disc-surface">
+                <img src="roselia.png" alt="Roselia" class="roselia-icon">
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button class="ctrl-btn" onclick="mediaControl('prev')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+            </button>
+            <button class="ctrl-btn" onclick="mediaControl('play')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+            </button>
+            <button class="ctrl-btn" onclick="mediaControl('next')">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="settings-modal">
+        <div class="modal-window">
+            <h2 class="modal-title">CRYSTAL CONFIG</h2>
+            
+            <!-- 动态列表容器 -->
+            <div id="dynamic-apps-list" class="dynamic-list-container">
+                <!-- JS 注入配置行 -->
+            </div>
+            <button class="btn btn-cancel btn-add" onclick="addNewAppSlot()">+ 添加应用快捷方式</button>
+
+            <hr style="border:0; border-top:1px solid rgba(255,255,255,0.1); margin: 20px 0;">
+
+            <!-- 音乐设置区域 -->
+            <div class="music-config-area" style="display:flex; align-items:center; gap:10px;">
+                <div class="form-group" style="flex:1; margin:0;">
+                    <label>DEFAULT MUSIC PLAYER</label>
+                    <input type="text" id="cfg-music" placeholder="cloudmusic.exe" readonly style="cursor:pointer;" onclick="pickFile('music')">
+                </div>
+                <button class="btn btn-browse" onclick="pickFile('music')">📂</button>
+            </div>
+            
+            <div class="form-group switch-row" style="margin-top:20px;">
+                <label>AUTOSTART BACKEND SERVICE</label>
+                <label class="toggle-switch">
+                    <input type="checkbox" id="cfg-autostart">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <div class="form-footer">
+                <button class="btn btn-cancel" onclick="toggleSettingsModal()">CLOSE</button>
+                <button class="btn btn-save" onclick="saveConfig()">SAVE CONFIG</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 新增：独立的 App 编辑弹窗 -->
+    <div class="modal-overlay" id="editor-modal" style="z-index: 1000;">
+        <div class="modal-window editor-window">
+            <h2 class="modal-title">EDIT SHORTCUT</h2>
+            
+            <div class="form-group">
+                <label>Icon Preview</label>
+                <div class="icon-preview-row">
+                    <img id="edit-icon-preview" src="" onerror="this.style.display='none'">
+                    <button class="btn btn-browse" onclick="pickFile('icon')">SELECT ICON IMAGE</button>
+                </div>
+                <input type="hidden" id="edit-icon-path">
+            </div>
+
+            <div class="form-group">
+                <label>Application Name</label>
+                <input type="text" id="edit-app-name" placeholder="E.g. Steam">
+            </div>
+
+            <div class="form-group">
+                <label>Target Path (Exe / URL)</label>
+                <div style="display:flex; gap:10px;">
+                    <input type="text" id="edit-app-path" placeholder="C:\...">
+                    <button class="btn btn-browse" onclick="pickFile('app')">BROWSE...</button>
+                </div>
+            </div>
+
+            <div class="form-footer">
+                <button class="btn btn-cancel" onclick="closeEditor()">CANCEL</button>
+                <button class="btn btn-save" onclick="saveEditor()">CONFIRM</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="scripts.js"></script>
+</body>
+</html>

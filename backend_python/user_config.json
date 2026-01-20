@@ -1,0 +1,26 @@
+{
+    "apps": [
+        {
+            "icon": "D:/SynthesizerV/Application/svp-icon.ico",
+            "name": "Svsharp",
+            "path": "D:/SynthesizerV/Application/svsharp.exe"
+        },
+        {
+            "icon": "D:/Typora/resources/assets/app.ico",
+            "name": "Typora",
+            "path": "D:/Typora/Typora.exe"
+        },
+        {
+            "icon": "D:/MatLab2024b/Application/ui/install/update_installer/images/apple-icons/apple-touch-icon-72x72.png",
+            "name": "Matlab",
+            "path": "D:/MatLab2024b/Application/bin/matlab.exe"
+        },
+        {
+            "name": "Adobe Audition",
+            "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe",
+            "icon": "E:/Adobe Audition 2022/Adobe Audition 2022/resources/content/images/appIcon.png"
+        }
+    ],
+    "autoStart": false,
+    "musicPath": "D:/CloudMusic/cloudmusic.exe"
+}
