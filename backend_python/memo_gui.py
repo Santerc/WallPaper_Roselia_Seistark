@@ -1,3 +1,6 @@
+import sys
+import json
+import requests
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QTextEdit, QLineEdit, QPushButton, QLabel, QCheckBox, 
                              QGraphicsDropShadowEffect, QFrame, QDateEdit, QCalendarWidget, 
@@ -54,6 +57,7 @@ QTextEdit {{
 }}
 
 /* Single Line Inputs */
+/* Single Line Inputs */
 QLineEdit, QDateEdit, QSpinBox {{
     background-color: {INPUT_BG};
     border: 1px solid {INPUT_BORDER};
@@ -63,6 +67,13 @@ QLineEdit, QDateEdit, QSpinBox {{
     font-size: 14px;
     min-height: 25px;
     selection-background-color: {ACCENT_COLOR};
+}}
+
+/* DISABLED STATE - VISUAL FEEDBACK */
+QLineEdit:disabled, QDateEdit:disabled, QSpinBox:disabled {{
+    background-color: rgba(0, 0, 0, 0.4);
+    color: rgba(255, 255, 255, 0.2);
+    border: 1px dashed rgba(255, 255, 255, 0.1);
 }}
 
 QTextEdit:focus, QLineEdit:focus, QDateEdit:focus, QSpinBox:focus {{
@@ -105,72 +116,108 @@ QPushButton#CloseBtn:hover {{
     color: #ff7675;
 }}
 
-/* Checkbox */
+QPushButton#DeleteBtn {{
+    background-color: rgba(255, 80, 80, 0.1);
+    border: 1px solid rgba(255, 80, 80, 0.3);
+    color: #ff7675;
+    min-width: 60px;
+}}
+QPushButton#DeleteBtn:hover {{
+    background-color: #d63031; 
+    border: 1px solid #ff7675;
+    color: white;
+}}
+
+/* Checkbox -> Toggle Switch Look */
 QCheckBox {{
-    spacing: 8px;
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.7);
+    spacing: 12px;
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.85);
 }}
 QCheckBox::indicator {{
-    width: 18px;
+    width: 36px;
     height: 18px;
-    border-radius: 5px;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 9px;
+    background-color: #2d3436; /* Off track */
+    border: 1px solid rgba(255, 255, 255, 0.2);
 }}
-QCheckBox::indicator:hover {{ border-color: {ACCENT_COLOR}; }}
+QCheckBox::indicator:hover {{
+    border-color: rgba(255, 255, 255, 0.5);
+}}
 QCheckBox::indicator:checked {{
-    background-color: {ACCENT_COLOR};
-    border-color: {ACCENT_COLOR};
+    background-color: {ACCENT_COLOR}; /* On track */
+    border: 1px solid {ACCENT_GLOW};
+    /* We simulate the knob position by using an image or just relying on color shift 
+       for pure CSS within Qt limits without external assets. */
 }}
 
 /* --- Date Edit Specifics --- */
 QDateEdit::drop-down {{
     subcontrol-origin: padding;
     subcontrol-position: center right;
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    margin-right: 5px;
-    background: transparent;
+    width: 25px;
+    height: 100%; /* Full height */
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    border-top-right-radius: 8px; 
+    border-bottom-right-radius: 8px;
+    background: rgba(0,0,0,0.1);
 }}
-QDateEdit::drop-down:hover {{ background-color: rgba(255, 255, 255, 0.1); }}
+QDateEdit::drop-down:hover {{ background-color: rgba(255, 255, 255, 0.15); }}
 QDateEdit::down-arrow {{
-    width: 10px; height: 10px;
+    width: 12px; height: 12px;
+    image: none; /* remove stock arrow */
     border-left: 5px solid transparent;
     border-right: 5px solid transparent;
-    border-top: 5px solid {ACCENT_COLOR};
+    border-top: 6px solid {ACCENT_COLOR};
+    margin: 0;
 }}
 QDateEdit::up-button, QDateEdit::down-button {{ width: 0px; }}
 
 /* --- SpinBox (for Time) Specifics --- */
 QSpinBox {{
-    padding-right: 15px;
+    padding-right: 25px; /* Make room for wider buttons */
 }}
 QSpinBox::up-button {{
     subcontrol-origin: border;
     subcontrol-position: top right;
-    width: 16px; 
+    width: 25px; 
+    height: 16px; /* Taller */
     border-left: 1px solid rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
     border-top-right-radius: 8px;
+    background: rgba(0,0,0,0.1);
 }}
 QSpinBox::down-button {{
     subcontrol-origin: border;
     subcontrol-position: bottom right;
-    width: 16px;
+    width: 25px;
+    height: 16px; /* Taller */
     border-left: 1px solid rgba(255, 255, 255, 0.1);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 0px solid transparent; /* Remove double border look */
     border-bottom-right-radius: 8px;
+    background: rgba(0,0,0,0.1);
 }}
-QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ background-color: rgba(255,255,255,0.1); }}
-QSpinBox::up-arrow, QSpinBox::down-arrow {{
-    width: 6px; height: 6px;
-    border-left: 3px solid transparent;
-    border-right: 3px solid transparent;
+QSpinBox::up-button:hover, QSpinBox::down-button:hover {{ 
+    background-color: {ACCENT_COLOR}; 
 }}
-QSpinBox::up-arrow {{ border-bottom: 4px solid {ACCENT_COLOR}; }}
-QSpinBox::down-arrow {{ border-top: 4px solid {ACCENT_COLOR}; }}
+/* Arrows inside SpinBox buttons - make them white on hover generally or just simple shapes */
+QSpinBox::up-arrow {{
+    width: 8px; height: 8px;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-bottom: 5px solid {ACCENT_COLOR};
+}}
+QSpinBox::down-arrow {{
+    width: 8px; height: 8px;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid {ACCENT_COLOR};
+}}
+/* Invert arrow color when hovering button for better contrast if background becomes accent color? 
+   Actually, keeping it simple is safer. Let's just make buttons bg slightly lighter on hover. */
+QSpinBox::up-button:hover {{ background-color: rgba(255,255,255,0.2); }}
+QSpinBox::down-button:hover {{ background-color: rgba(255,255,255,0.2); }}
+
 
 /* Calendar Popups */
 QCalendarWidget QWidget {{ background-color: #2d3436; color: white; }}
@@ -296,9 +343,11 @@ class MemoWindow(QWidget):
         h_layout.addWidget(self.enable_date_chk)
         content_container.addLayout(h_layout)
         
+        content_container.addSpacing(10) # Breathable vertical gap
+
         # Date & Time Inputs (Explicit Separate Inputs)
         dt_layout = QHBoxLayout()
-        dt_layout.setSpacing(10)
+        dt_layout.setSpacing(20) # More horizontal breathing room
         
         # 1. Date Edit (Standard)
         self.date_edit = QDateEdit()
@@ -366,6 +415,14 @@ class MemoWindow(QWidget):
         self.save_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         self.save_btn.clicked.connect(self.save)
         
+        # Layout: [Delete] ...Stretch... [Cancel][Save]
+        if self.memo_id:
+            self.delete_btn = QPushButton("DELETE")
+            self.delete_btn.setObjectName("DeleteBtn")
+            self.delete_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            self.delete_btn.clicked.connect(self.delete_memo)
+            btn_layout.addWidget(self.delete_btn)
+
         btn_layout.addStretch()
         btn_layout.addWidget(self.cancel_btn)
         btn_layout.addWidget(self.save_btn)
@@ -376,6 +433,20 @@ class MemoWindow(QWidget):
         self.date_edit.setEnabled(checked)
         self.hour_spin.setEnabled(checked)
         self.min_spin.setEnabled(checked)
+
+    def delete_memo(self):
+        if not self.memo_id:
+            return
+            
+        payload = {"id": self.memo_id}
+        try:
+            # SERVER_URL is .../api/memos, so append /delete
+            url = SERVER_URL + "/delete"
+            requests.post(url, json=payload, timeout=2)
+            self.close()
+        except Exception as e:
+            print(f"Error deleting memo: {e}")
+            self.text_edit.setPlaceholderText(f"Error deleting: {e}")
 
     def save(self):
         # 1. Gather Data
