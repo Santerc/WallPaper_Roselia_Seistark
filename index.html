@@ -11,6 +11,46 @@
     
     <canvas id="sakura-canvas"></canvas>
 
+    <!-- System Stats -->
+    <div class="system-stats">
+        <div class="stat-item">
+            <div class="stat-label">CPU</div>
+            <div class="stat-circle">
+                <svg viewBox="0 0 36 36">
+                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="circle" id="cpu-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <div class="stat-text" id="cpu-text">0%</div>
+            </div>
+        </div>
+        <div class="stat-item">
+            <div class="stat-label">RAM</div>
+            <div class="stat-circle">
+                <svg viewBox="0 0 36 36">
+                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path class="circle" id="ram-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                </svg>
+                <div class="stat-text" id="ram-text">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Memo Widget -->
+    <div class="memo-container closed" id="memo-widget">
+        <div class="memo-icon" onclick="toggleMemo()">
+            <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" fill="none" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="memo-glass">
+            <div class="memo-header">
+                <h3>MEMOS</h3>
+                <button class="add-memo-btn" onclick="addNewMemo()">+</button>
+            </div>
+            <div class="memo-list" id="memo-list-container">
+                <!-- Generated Items -->
+            </div>
+        </div>
+    </div>
+
     <div class="widget-time">
         <h1 id="clock">00:00</h1>
         <p id="date">LOADING...</p>

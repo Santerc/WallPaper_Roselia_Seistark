@@ -22,5 +22,6 @@
         }
     ],
     "autoStart": false,
-    "musicPath": "D:/CloudMusic/cloudmusic.exe"
+    "musicPath": "D:/CloudMusic/cloudmusic.exe",
+    "memos": []
 }

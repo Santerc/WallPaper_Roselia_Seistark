@@ -8,6 +8,13 @@ body, html {
     user-select: none; /* 禁止选中文本 */
 }
 
+/* Allow interaction with inputs */
+input, textarea, button {
+    user-select: text;
+    -webkit-user-select: text;
+    pointer-events: auto;
+}
+
 /* 背景图片 */
 #bg-layer {
     position: absolute;
@@ -24,6 +31,239 @@ body, html {
     z-index: 1; /* Changed from -1 to 1 */
     pointer-events: none;
 }
+
+/* ================= System Stats ================= */
+.system-stats {
+    position: absolute;
+    top: 30px; left: 30px;
+    z-index: 50;
+    display: flex; gap: 20px;
+}
+.stat-item {
+    display: flex; flex-direction: column; align-items: center;
+    color: rgba(255,255,255,0.8);
+}
+.stat-label { font-size: 12px; margin-bottom: 5px; letter-spacing: 1px; font-weight: 600; text-transform: uppercase; }
+.stat-circle {
+    position: relative; width: 60px; height: 60px;
+}
+.stat-circle svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.circle-bg { fill: none; stroke: rgba(255,255,255,0.1); stroke-width: 2.5; }
+.circle { fill: none; stroke: #a29bfe; stroke-width: 2.5; stroke-linecap: round; transition: stroke-dasharray 0.5s ease; filter: drop-shadow(0 0 4px #a29bfe); }
+#cpu-ring { stroke: #fab1a0; filter: drop-shadow(0 0 4px #fab1a0); }
+#ram-ring { stroke: #a29bfe; filter: drop-shadow(0 0 4px #a29bfe); }
+
+.stat-text {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 14px; font-weight: bold; color: white;
+}
+
+/* ================= Glass Memo ================= */
+/* ================= Glass Memo (Beautified) ================= */
+.memo-container {
+    position: absolute;
+    bottom: 280px; right: 0;
+    z-index: 200;
+    transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
+    display: flex; align-items: flex-end;
+    filter: drop-shadow(-5px 5px 20px rgba(0,0,0,0.6));
+}
+.memo-container.closed { transform: translateX(380px); }
+
+.memo-icon {
+    position: absolute; left: -50px; bottom: 20px;
+    width: 50px; height: 80px;
+    background: linear-gradient(135deg, rgba(230,230,250,0.15) 0%, rgba(230,230,250,0.05) 100%);
+    backdrop-filter: blur(15px);
+    border-radius: 12px 0 0 12px;
+    border: 1px solid rgba(255,255,255,0.25); border-right: none;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    color: rgba(255,255,255,0.9);
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: -2px 2px 10px rgba(0,0,0,0.2);
+}
+.memo-icon svg { width: 30px; height: 30px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
+.memo-icon:hover { 
+    background: rgba(255,255,255,0.2); 
+    width: 55px; left: -55px;
+    box-shadow: -5px 0 20px rgba(162, 155, 254, 0.5);
+    color: #fff;
+}
+
+.memo-glass {
+    width: 380px; height: 600px;
+    background: rgba(30, 30, 45, 0.85); /* Dark Deep Glass */
+    backdrop-filter: blur(35px);
+    border-top-left-radius: 24px;
+    border-left: 1px solid rgba(255,255,255,0.15);
+    border-top: 1px solid rgba(255,255,255,0.15);
+    display: flex; flex-direction: column;
+    box-shadow: inset 1px 1px 0 rgba(255,255,255,0.1);
+}
+
+.memo-header {
+    height: 75px; 
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 0 25px; 
+    background: linear-gradient(to bottom, rgba(255,255,255,0.03), transparent);
+    border-top-left-radius: 24px;
+}
+.memo-header h3 { 
+    font-size: 20px; margin: 0; 
+    letter-spacing: 3px; font-weight: 300; text-transform: uppercase;
+    background: linear-gradient(90deg, #e0c3fc 0%, #8ec5fc 100%);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 10px rgba(162, 155, 254, 0.3));
+}
+.add-memo-btn {
+    width: 32px; height: 32px; font-size: 20px;
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px; color: white; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.add-memo-btn:hover { 
+    background: #a29bfe; border-color: #a29bfe; 
+    transform: rotate(90deg) scale(1.1); box-shadow: 0 0 15px #a29bfe;
+}
+
+.memo-list {
+    flex: 1; overflow-y: auto; padding: 25px;
+    display: flex; flex-direction: column; gap: 15px;
+}
+.memo-card {
+    background: linear-gradient(135deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.02) 100%);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px; padding: 18px;
+    color: rgba(255,255,255,0.9);
+    position: relative;
+    transition: all 0.3s ease;
+}
+.memo-card:hover { 
+    transform: translateY(-2px); 
+    background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.04) 100%);
+    border-color: rgba(255,255,255,0.25);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+}
+
+.memo-card textarea {
+    display: none; /* Hide textarea */
+}
+
+/* Display Mode Styles */
+.memo-content {
+    cursor: pointer;
+    min-height: 40px;
+}
+.memo-text {
+    font-size: 32px; /* Double Size as requested */
+    line-height: 1.4;
+    white-space: pre-wrap;
+    word-break: break-word;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+    font-weight: 500;
+}
+
+.memo-meta {
+    justify-content: flex-start;
+}
+.ddl-chip {
+    font-size: 11px; background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 12px;
+    color: #a29bfe; border: 1px solid rgba(162, 155, 254, 0.2);
+}
+.reminder-chip {
+    font-size: 11px; padding: 4px 8px; border-radius: 4px; color: #555;
+}
+.reminder-chip.active { color: #fab1a0; font-weight: bold; }
+
+.memo-edit-btn {
+    cursor: pointer; font-size: 10px; font-weight: bold; color: #fff; opacity: 0.5;
+    background: rgba(255,255,255,0.1); padding: 2px 8px; border-radius: 4px;
+}
+.memo-edit-btn:hover { opacity: 1; background: #a29bfe; }
+
+.memo-toolbar {
+    display: flex; justify-content: space-between; align-items: center;
+    border-top: 1px solid rgba(255,255,255,0.05); padding-top: 10px; margin-top: 5px;
+}
+
+/* --- Memo Meta & Controls --- */
+.memo-meta {
+    margin-top: 10px; margin-bottom: 5px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+}
+.ddl-control {
+    display: flex; align-items: center; gap: 6px;
+    background: rgba(0,0,0,0.3); padding: 4px 10px; border-radius: 15px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+.ddl-label { font-size: 10px; font-weight: 700; color: #a29bfe; letter-spacing: 0.5px; }
+.memo-date { 
+    background: transparent; border: none; color: rgba(255,255,255,0.85);
+    font-family: 'Segoe UI', sans-serif; font-size: 11px;
+    outline: none;
+}
+.memo-date::-webkit-calendar-picker-indicator {
+    filter: invert(0.9) sepia(100%) hue-rotate(190deg); 
+    cursor: pointer; opacity: 0.8; width: 14px; height: 14px;
+}
+.memo-date::-webkit-calendar-picker-indicator:hover { opacity: 1; transform: scale(1.1); }
+
+.reminder-toggle {
+    display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none;
+    font-size: 11px; color: #fab1a0; font-weight: 600; padding: 2px 5px; border-radius: 4px;
+    transition: background 0.2s;
+}
+.reminder-toggle:hover { background: rgba(250, 177, 160, 0.1); }
+.reminder-toggle input { accent-color: #fab1a0; margin: 0; }
+
+/* Status Styles */
+.memo-card.overdue { 
+    border: 1px solid rgba(255, 118, 117, 0.6); 
+    box-shadow: 0 0 15px rgba(255, 118, 117, 0.15); 
+}
+.memo-card.overdue .ddl-label { color: #ff7675; }
+
+@keyframes gentlePulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 rgba(162, 155, 254, 0); }
+    50% { transform: scale(1.015); box-shadow: 0 0 20px rgba(162, 155, 254, 0.25); border-color: rgba(162, 155, 254, 0.6); }
+    100% { transform: scale(1); box-shadow: 0 0 0 rgba(162, 155, 254, 0); }
+}
+.memo-card.gentle-pulse { animation: gentlePulse 3s infinite ease-in-out; }
+
+/* Delete Actions */
+.memo-delete { 
+    color: rgba(255,255,255,0.3); font-size: 10px; font-weight: 700;
+    cursor: pointer; letter-spacing: 0.5px; transition: color 0.2s;
+}
+.memo-delete:hover { color: #ff5252; text-decoration: none; }
+
+.delete-overlay {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(20, 20, 35, 0.9); backdrop-filter: blur(8px);
+    border-radius: 12px;
+    display: flex; flex-direction: column; justify-content: center; align-items: center;
+    opacity: 0; pointer-events: none; transition: opacity 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    z-index: 10;
+}
+.delete-overlay.show { opacity: 1; pointer-events: auto; }
+.delete-overlay span { font-weight: 600; margin-bottom: 15px; color: #fff; font-size: 13px; letter-spacing: 0.5px; }
+.del-actions { display: flex; gap: 12px; }
+.del-actions button {
+    border: none; padding: 6px 18px; border-radius: 20px; font-size: 11px;
+    cursor: pointer; font-weight: 700; transition: transform 0.2s, box-shadow 0.2s;
+}
+.del-actions .yes { background: #ff7675; color: white; box-shadow: 0 4px 12px rgba(255, 118, 117, 0.4); }
+.del-actions .no { background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2); }
+.del-actions button:hover { transform: scale(1.1); }
+
+/* Custom Scrollbar - Slim & Sleek */
+.memo-list::-webkit-scrollbar { width: 5px; }
+.memo-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+.memo-list:hover::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.25); }
 
 /* ================= 时间组件 ================= */
 .widget-time {

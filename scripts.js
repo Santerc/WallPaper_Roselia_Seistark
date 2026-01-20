@@ -701,3 +701,194 @@ function startAudioDemo() {
 
 // Initial backend check (This must be called at the end)
 loadConfigToUI();
+
+// ==========================================
+// 7. System Stats & Memo Logic
+// ==========================================
+
+// --- System Stats ---
+function updateSystemStats() {
+    fetch('http://127.0.0.1:35678/api/stats')
+        .then(res => res.json())
+        .then(data => {
+            const cpu = data.cpu || 0;
+            const ram = data.ram || 0;
+
+            document.getElementById('cpu-text').innerText = Math.round(cpu) + '%';
+            document.getElementById('ram-text').innerText = Math.round(ram) + '%';
+            
+            const cpuRing = document.getElementById('cpu-ring');
+            // The logic: 100 refers to the circumference relative to SVG viewBox size 
+            if(cpuRing) cpuRing.setAttribute('stroke-dasharray', `${cpu}, 100`);
+
+            const ramRing = document.getElementById('ram-ring');
+            if(ramRing) ramRing.setAttribute('stroke-dasharray', `${ram}, 100`);
+        })
+        .catch(err => { 
+            // Silent fail
+        });
+}
+
+// Poll every 2 seconds
+setInterval(updateSystemStats, 2000);
+updateSystemStats();
+
+// --- Memo Logic ---
+function toggleMemo() {
+    const w = document.getElementById('memo-widget');
+    if(w) w.classList.toggle('closed');
+}
+
+function loadMemos() {
+    fetch('http://127.0.0.1:35678/api/memos')
+        .then(res => res.json())
+        .then(memos => {
+            const container = document.getElementById('memo-list-container');
+            if(!container) return;
+            container.innerHTML = '';
+            // Sort by id desc (newest first) but keeping existing order if provided by backend
+            // For now simple append
+            memos.forEach(m => renderMemoCard(m));
+        })
+        .catch(console.error);
+}
+
+function renderMemoCard(memo) {
+    const container = document.getElementById('memo-list-container');
+    const div = document.createElement('div');
+    div.className = 'memo-card';
+    div.id = `memo-${memo.id}`;
+    
+    // Check deadline status
+    let statusClass = '';
+    const now = new Date();
+    if (memo.dueDate) {
+        const due = new Date(memo.dueDate);
+        const timeDiff = due - now;
+        if (timeDiff < 0) statusClass = 'overdue';
+        else if (timeDiff < 3600000) statusClass = 'urgent'; // 1 hour
+    }
+
+    if (statusClass) div.classList.add(statusClass);
+    
+    // Display Only Mode (Click to Edit)
+    const displayDate = memo.dueDate ? new Date(memo.dueDate).toLocaleString() : 'No Deadline';
+    const hasReminder = memo.enableReminder ? '🔔 ON' : '🔕 OFF';
+
+    div.innerHTML = `
+        <div class="memo-content" onclick="openMemoEditor(${memo.id})">
+            <div class="memo-text">${memo.text || '(Empty)'}</div>
+        </div>
+        
+        <div class="memo-meta">
+            <div class="ddl-chip">${displayDate}</div>
+            <div class="reminder-chip ${memo.enableReminder?'active':''}">${hasReminder}</div>
+        </div>
+
+        <div class="memo-toolbar">
+            <span class="memo-edit-btn" onclick="openMemoEditor(${memo.id})">EDIT</span>
+            <span class="memo-delete" onclick="requestDeleteMemo(${memo.id})">DELETE</span>
+        </div>
+        
+        <div class="delete-overlay" id="del-overlay-${memo.id}">
+             <span>Confirm delete?</span>
+             <div class="del-actions">
+                 <button class="yes" onclick="confirmDeleteMemo(${memo.id})">YES</button>
+                 <button class="no" onclick="cancelDeleteMemo(${memo.id})">NO</button>
+             </div>
+        </div>
+    `;
+    container.prepend(div); 
+}
+
+// Open Editor via Backend Window
+function openMemoEditor(id) {
+    // Find existing data to pass
+    // We basically need to look up the memo object from our 'memos' list we fetched earlier?
+    // Let's assume we can fetch it or we store it in a global map.
+    // Simpler: Just Fetch All, find ID, send. 
+    // Or attach data to DOM.
+    // Let's re-fetch local state or better: make memos global
+    fetch('http://127.0.0.1:35678/api/memos')
+    .then(r => r.json())
+    .then(list => {
+        const item = list.find(m => m.id === id);
+        if(item) {
+            fetch('http://127.0.0.1:35678/api/memos/open_editor', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(item)
+            });
+        }
+    });
+}
+
+function addNewMemo() {
+    // Open editor with empty data
+    fetch('http://127.0.0.1:35678/api/memos/open_editor', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: 0, text: "", dueDate: ""})
+    });
+}
+
+// Poll for updates (since external editor changes file)
+setInterval(() => {
+    // Only reload if we are not interacting? Or just reload.
+    // Since UI is read-only, it is safe to reload always.
+    loadMemos();
+}, 2000);
+
+// --- Custom Delete UX (No Alert) ---
+function requestDeleteMemo(id) {
+    const overlay = document.getElementById(`del-overlay-${id}`);
+    if(overlay) overlay.classList.add('show');
+}
+
+function cancelDeleteMemo(id) {
+    const overlay = document.getElementById(`del-overlay-${id}`);
+    if(overlay) overlay.classList.remove('show');
+}
+
+function confirmDeleteMemo(id) {
+    fetch('http://127.0.0.1:35678/api/memos/delete', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({id: id})
+    }).then(() => {
+        const el = document.getElementById(`memo-${id}`);
+        if(el) el.remove();
+    });
+}
+
+// --- Reminder Polling System ---
+setInterval(() => {
+    const cards = document.querySelectorAll('.memo-card');
+    const now = new Date();
+    
+    cards.forEach(card => {
+        const dateInput = card.querySelector('.memo-date');
+        const reminderCheck = card.querySelector('input[type="checkbox"]');
+        
+        if (dateInput && dateInput.value && reminderCheck && reminderCheck.checked) {
+            const due = new Date(dateInput.value);
+            const diff = due - now;
+            
+            // Logic: If due in < 15 mins and > -1 min (just passed)
+            // Pulse effect
+            if (diff < 900000 && diff > -60000) {
+                card.classList.add('gentle-pulse');
+                // Optional: Play soft sound?
+            } else {
+                card.classList.remove('gentle-pulse');
+            }
+            
+            // Overdue styling
+            if (diff < 0) card.classList.add('overdue');
+            else card.classList.remove('overdue');
+        }
+    });
+}, 30000); // Check every 30s
+
+// Load memos on start
+loadMemos();
