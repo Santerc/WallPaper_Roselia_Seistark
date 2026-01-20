@@ -125,6 +125,20 @@
         </div>
     </div>
 
+    <!-- Ensure script is the absolute last thing -->
     <script src="scripts.js"></script>
+    <script>
+        // Inline fail-safe check
+        window.addEventListener('load', function() {
+           setTimeout(function() {
+               const debug = document.getElementById('audio-debug');
+               if(debug && debug.innerText.includes("Waiting")) {
+                   console.warn("Audio Context Timed Out - Forcing Demo?");
+                   // Optional: enable demo fallback if user wants?
+                   // Currently just warns
+               }
+           }, 3000);
+        });
+    </script>
 </body>
 </html>

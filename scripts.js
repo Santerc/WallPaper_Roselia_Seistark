@@ -553,51 +553,150 @@ window.wallpaperPropertyListener = {
 // ==========================================
 // 6. Audio Visualizer
 // ==========================================
-const audioCanvas = document.getElementById('audio-visualizer');
-let audioCtx, audioDataArray;
+let globalAudioCanvas = document.getElementById('audio-visualizer');
+let globalActx = null;
+let lastAudioData = new Array(5).fill(0); 
 
-if (audioCanvas) {
-    const actx = audioCanvas.getContext('2d');
-
-    function drawAudio(audioArray) {
-        if (!actx) return;
-        const w = audioCanvas.width;
-        const h = audioCanvas.height;
-        actx.clearRect(0, 0, w, h);
-
-        // Simple Bar Visualizer (using first 64 bins mostly)
-        const barCount = 16;
-        const barWidth = w / barCount - 2;
-
-        // Check if there is audio to rotate the disc
-        let maxVal = 0;
-
-        for(let i = 0; i < barCount; i++) {
-            // Map low frequencies better
-            const value = audioArray[i * 2] || 0;
-            maxVal = Math.max(maxVal, value);
-
-            const barHeight = value * h * 0.8;
-
-            actx.fillStyle = `rgba(0, 210, 211, ${0.5 + value * 0.5})`;
-            actx.fillRect(i * (barWidth + 2), h - barHeight, barWidth, barHeight);
+// Canvas Setup
+if (!globalAudioCanvas) {
+    setTimeout(() => {
+        globalAudioCanvas = document.getElementById('audio-visualizer');
+        if (globalAudioCanvas) {
+            globalActx = globalAudioCanvas.getContext('2d');
+            globalAudioCanvas.onclick = () => window.location.reload();
         }
+    }, 100);
+} else {
+    globalActx = globalAudioCanvas.getContext('2d');
+    globalAudioCanvas.onclick = () => window.location.reload();
+}
 
-        // Rotate Disc Logic
-        const disc = document.querySelector('.album-cover');
-        if(disc) {
-            // Threshold for rotation
-            if(maxVal > 0.01) disc.classList.add('playing');
-            else disc.classList.remove('playing');
-        }
+// THE LISTENER CALLBACK
+function wallpaperAudioListener(audioArray) {
+    // Stop demo if running
+    if (window.demoTimer) {
+        clearInterval(window.demoTimer);
+        window.demoTimer = null;
     }
 
-    // Wallpaper Engine Listener
-    window.wallpaperRegisterAudioListener = function(audioArray) {
-        // audioArray is 128 floats (left+right). We average or take left.
-        // Simplified usage
-        drawAudio(audioArray);
-    };
+    if (globalActx && globalAudioCanvas) {
+        drawAudioFrame(audioArray);
+    }
+}
+
+// REGISTRATION LOGIC
+function registerListener() {
+    // Check for Modern API
+    if (window.wallpaperRegisterAudioListener) {
+        try {
+            // Standard Call
+            window.wallpaperRegisterAudioListener(wallpaperAudioListener);
+        } catch(e) {
+            console.error("API Call Failed", e);
+            // Fallback assignment
+            window.wallpaperRegisterAudioListener = wallpaperAudioListener;
+        }
+    } else {
+        // API not found (yet?), assign global expecting WE to find it
+        window.wallpaperRegisterAudioListener = wallpaperAudioListener;
+    }
+}
+
+// Try multiple times
+registerListener();
+window.addEventListener('load', registerListener);
+setTimeout(registerListener, 2000);
+
+function drawAudioFrame(audioArray) {
+    if(!globalActx) return;
+    
+    const w = globalAudioCanvas.width;
+    const h = globalAudioCanvas.height;
+    globalActx.clearRect(0, 0, w, h);
+
+    // Visualizer Settings (Thick Bars)
+    const barCount = 5; 
+    const spacing = 4; // Slightly reduced spacing to fit bars better
+    const barWidth = (w - (barCount - 1) * spacing) / barCount;
+    
+    let maxVal = 0;
+
+    for(let i = 0; i < barCount; i++) {
+        // Frequency Mapping: Focus on Bass/Low-Mids
+        // Map 5 bars to indices: 0, 1, 3, 5, 8 (More logarithmic-ish)
+        const indices = [0, 1, 3, 5, 8]; 
+        let idx = indices[i];
+        
+        // Sum Left and Right channels
+        let rawVal = (audioArray[idx] || 0) + (audioArray[64 + idx] || 0); 
+        rawVal = rawVal * 0.5; // Average
+
+        // Smooth falloff
+        if (rawVal > lastAudioData[i]) {
+            lastAudioData[i] = rawVal; 
+        } else {
+            lastAudioData[i] = Math.max(0, lastAudioData[i] - 0.05); // Slower decay for visibility
+        }
+        
+        const renderVal = lastAudioData[i];
+        maxVal = Math.max(maxVal, renderVal);
+
+        // ALWAYS Draw a base line (so we know it's there)
+        const minHeight = 4;
+
+        if (renderVal > 0.0001 || true) { // Always draw something
+            let barHeight = renderVal * h * 3.0; // 3x Gain
+            barHeight = Math.max(minHeight, barHeight); 
+            barHeight = Math.min(h, barHeight); 
+
+            const x = i * (barWidth + spacing);
+            const y = h - barHeight;
+
+            // Neon Cyan
+            globalActx.fillStyle = `rgba(0, 210, 211, ${0.4 + renderVal * 0.6})`;
+            globalActx.fillRect(x, y, barWidth, barHeight);
+            
+            // White Cap
+            globalActx.fillStyle = `rgba(255, 255, 255, 0.9)`;
+            globalActx.fillRect(x, y, barWidth, 3);
+        }
+    }
+    updateDiscRotation(maxVal);
+}
+
+function updateDiscRotation(maxVal) {
+    const disc = document.querySelector('.album-cover');
+    if(disc) {
+        if(maxVal > 0.01) disc.classList.add('playing');
+        else disc.classList.remove('playing');
+    }
+}
+
+// Demo Mode Logic (Fallback)
+window.demoTimer = null;
+setTimeout(() => {
+    // Check if we haven't received any data yet
+    // Note: We can't easily check if the listener was CALLED, but we can check if we are silent.
+    // For now, simple Browser check:
+    const isWallpaperEngine = !!window.wallpaperRequestRandomFileForProperty; // WE specific API check
+    if (!isWallpaperEngine) {
+        console.log("Browser env detected. Starting Audio Demo.");
+        startAudioDemo();
+    }
+}, 1500);
+
+function startAudioDemo() {
+    const demodata = new Array(128).fill(0);
+    let t = 0;
+    window.demoTimer = setInterval(() => {
+        t += 0.2;
+        const beat = Math.pow((Math.sin(t) + 1)/2, 8); // Sharp beat
+        for(let i=0; i<10; i++) { // Only fill low freqs
+             demodata[i] = Math.random() * 0.2 + beat * 0.8; 
+             demodata[64+i] = demodata[i];
+        }
+        if (globalActx) drawAudioFrame(demodata);
+    }, 33);
 }
 
 // Initial backend check (This must be called at the end)

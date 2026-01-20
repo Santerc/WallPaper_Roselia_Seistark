@@ -1,14 +1,15 @@
 {
-  "title": "Test",
+  "title": "Anime Glass UI",
   "file": "index.html",
-  "description": "Test",
+  "description": "Interactive Web Wallpaper with Audio Visualizer",
   "type": "web",
+  "preview": "preview.jpg",
   "general": {
+    "supportsaudioprocessing": true,
     "properties": {
       "bgm_vol": { "title": "BGM Volume", "type": "slider", "min": 0, "max": 100, "value": 30 },
-      "app_1_url": { "title": "App 1 路径 (URI)", "type": "textinput", "value": "http://www.bilibili.com" },
-      "app_2_url": { "title": "App 2 路径 (URI)", "type": "textinput", "value": "steam://" },
-      "sakura_count": { "title": "樱花数量", "type": "slider", "min": 0, "max": 200, "value": 60 }
+      "sakura_count": { "title": "Sakura Particles", "type": "slider", "min": 0, "max": 200, "value": 60 },
+      "audio_response": { "title": "Enable Visualizer", "type": "bool", "value": true }
     }
   }
 }

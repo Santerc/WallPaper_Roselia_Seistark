@@ -359,7 +359,9 @@ body, html {
 
 #audio-visualizer {
     width: 60px; height: 30px;
-    opacity: 0.8;
+    opacity: 0.9;
+    /* Neon Glow Effect */
+    filter: drop-shadow(0 0 5px rgba(0, 210, 211, 0.6));
 }
 
 .album-cover {
