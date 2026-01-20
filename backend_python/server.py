@@ -6,8 +6,6 @@ import subprocess
 import winreg
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
-import tkinter as tk
-from tkinter import filedialog
 import mimetypes
 try:
     import psutil
@@ -18,6 +16,11 @@ except ImportError:
 import time
 import threading
 from datetime import datetime
+
+# PyQt Imports for Integrated GUI Support
+from PyQt6.QtWidgets import QApplication, QFileDialog
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
+from memo_gui import MemoWindow
 
 # ================= Configuration =================
 PORT = 35678
@@ -38,6 +41,89 @@ DEFAULT_CONFIG = {
 
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
+
+
+# ================= GUI Manager (Bridge) =================
+class GuiManager(QObject):
+    # Signals to Main Thread
+    open_editor_signal = pyqtSignal(dict)
+    pick_file_signal = pyqtSignal()
+    
+    # Signals back to Flask Thread (via Events/Variables, though Flask requests usually wait)
+    # Since Flask handlers are in threads, we can use simple threading Events or similar if we needed sync
+    # But for 'open_editor' it's async (fire and forget usually), but 'pick_file' waits for return.
+
+    def __init__(self):
+        super().__init__()
+        self.active_window = None
+        self.file_picker_result = None
+        self.file_picker_event = threading.Event()
+        
+        # Connect signals
+        self.open_editor_signal.connect(self.show_editor_slot)
+        self.pick_file_signal.connect(self.show_file_picker_slot)
+
+    @pyqtSlot(dict)
+    def show_editor_slot(self, data):
+        # Callback wrapper to handle save from GUI directly in this process
+        def on_save(memo_data):
+            self.update_memo(memo_data)
+            
+        def on_delete(memo_id):
+            self.delete_memo_internal(memo_id)
+
+        # Close existing if open (optimization)
+        if self.active_window:
+            self.active_window.close()
+            
+        self.active_window = MemoWindow(data, on_save, on_delete)
+        self.active_window.show()
+        # Bring to front
+        self.active_window.activateWindow()
+        self.active_window.raise_()
+
+    @pyqtSlot()
+    def show_file_picker_slot(self):
+        filename, _ = QFileDialog.getOpenFileName(None, "Select File", "", "All Files (*)")
+        self.file_picker_result = filename
+        self.file_picker_event.set()
+
+    # --- Logic Helpers ---
+    def update_memo(self, data):
+        config = load_config()
+        memos = config.get("memos", [])
+        
+        # Determine ID
+        if not data.get("id"):
+            # New Memo: Generate ID
+            new_id = int(time.time() * 1000)
+            data["id"] = new_id
+            memos.append(data)
+        else:
+            # Update existing
+            found = False
+            for i, m in enumerate(memos):
+                if m.get("id") == data.get("id"):
+                    memos[i] = data
+                    found = True
+                    break
+            if not found:
+                memos.append(data) # Fallback
+                
+        config["memos"] = memos
+        save_config(config)
+        print(f"Memo saved: {data.get('id')}")
+
+    def delete_memo_internal(self, memo_id):
+        config = load_config()
+        memos = config.get("memos", [])
+        config["memos"] = [m for m in memos if m.get("id") != memo_id]
+        save_config(config)
+        print(f"Memo deleted: {memo_id}")
+
+# Global instance
+gui_manager = None
+
 
 # ================= System Utilities =================
 
@@ -156,32 +242,19 @@ def launch_app():
 
 @app.route('/system/pick-file', methods=['GET'])
 def pick_file():
-    file_filter_str = request.args.get('filter', 'All Files (*.*)|*.*')
+    global gui_manager
+    if not gui_manager:
+        return jsonify({"error": "GUI not initialized"}), 500
+        
+    # Reset event
+    gui_manager.file_picker_event.clear()
+    gui_manager.pick_file_signal.emit() # Signal main thread
     
-    # Convert "BitMap (*.bmp;*.dib)|*.bmp;*.dib" -> [("BitMap", "*.bmp;*.dib")]
-    # Simple parsing logic for tkinter
-    file_types = []
-    if '|' in file_filter_str:
-        parts = file_filter_str.split('|')
-        for i in range(0, len(parts), 2):
-            if i+1 < len(parts):
-                desc = parts[i]
-                exts = parts[i+1] # ".exe;.bat"
-                # Tkinter expects ("Description", "*.ext") or ("Description", (".ext1", ".ext2"))
-                # But a simple string "*.exe" usually works or space separated
-                exts_fixed = exts.replace(';', ' ') 
-                file_types.append((desc, exts_fixed))
+    # Wait for result
+    gui_manager.file_picker_event.wait()
     
-    # Run Tkinter in a separate thread context or just quickly initialize
-    root = tk.Tk()
-    root.withdraw() # Hide main window
-    root.attributes('-topmost', True) # Bring to front
-    
-    file_path = filedialog.askopenfilename(filetypes=file_types)
-    
-    root.destroy()
-    
-    return jsonify({"path": file_path})
+    path = gui_manager.file_picker_result
+    return jsonify({"path": path})
 
 # ================= Stats API =================
 @app.route('/api/stats', methods=['GET'])
@@ -305,42 +378,53 @@ def delete_memo():
 @app.route('/api/memos/open_editor', methods=['POST'])
 def open_editor():
     data = request.json
-    # Launch subprocess detached
-    # Passing data as JSON string argument
-    data_str = json.dumps(data)
-    
-    try:
-        # Determine executable path: 
-        # If frozen (PyInstaller), sys.executable is the EXE.
-        # If script, sys.executable is python.exe, and we need to pass the script path.
-        if getattr(sys, 'frozen', False):
-            # EXE Mode: output.exe --gui "{\"json\":...}"
-            cmd = [sys.executable, "--gui", data_str]
-        else:
-            # Script Mode: python server.py --gui "{\"json\":...}"
-            cmd = [sys.executable, __file__, "--gui", data_str]
-
-        subprocess.Popen(cmd, creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == 'win32' else 0)
+    global gui_manager
+    if gui_manager:
+        gui_manager.open_editor_signal.emit(data)
         return jsonify({"success": True})
+    else:
+        return jsonify({"error": "GUI Manager not active"}), 500
+
+@app.route('/system/stop', methods=['POST'])
+def stop_server():
+    """
+    Shuts down the server and the PyQt application.
+    Expected to be called from the frontend.
+    """
+    try:
+        # Use os._exit(0) to forcefully terminate the process immediately.
+        # This is necessary because app.quit() might just stop the event loop
+        # but the Flask thread or other daemon threads might keep the process "zombie"
+        # or there might be cleanup handlers delaying exit.
+        # For a "kill switch" like this, _exit is appropriate.
+        def kill():
+            time.sleep(1) # Give time for the response to revert to client
+            os._exit(0)
+        
+        # Run in a separate thread so we can return the response first
+        threading.Thread(target=kill).start()
+        
+        return jsonify({"success": True, "message": "Server shutting down..."})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    # --- GUI Launch Logic ---
-    if len(sys.argv) > 1 and sys.argv[1] == '--gui':
-        try:
-            # Import strictly inside the guard to prevent early PyQt init during server startup
-            from memo_gui import run_editor
-            
-            # Data is the last argument or second argument
-            data_arg = sys.argv[-1] if len(sys.argv) > 2 else "{}"
-            run_editor(data_arg)
-        except Exception as e:
-            with open("gui_error.log", "w") as f:
-                f.write(str(e))
-        sys.exit(0)
-    # ------------------------
-
-    print(f"Starting Python Backend on port {PORT}...")
-    # host='0.0.0.0' allows external access, but '127.0.0.1' is safer for local wallpaper
-    app.run(host='127.0.0.1', port=PORT)
+    # 1. Initialize Qt Application (Must be in Main Thread)
+    app_qt = QApplication(sys.argv)
+    app_qt.setQuitOnLastWindowClosed(False) # Keep running when windows close
+    
+    # 2. Init GUI Manager
+    gui_manager = GuiManager()
+    
+    # 3. Start Flask in Background Thread
+    def run_flask():
+        # debug=False, use_reloader=False is crucial for threading
+        app.run(host='127.0.0.1', port=PORT, debug=False, use_reloader=False)
+        
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    
+    print(f"Backend & GUI Service Started on port {PORT}...")
+    
+    # 4. Start Qt Event Loop (Blocking)
+    sys.exit(app_qt.exec())

@@ -1,0 +1,15 @@
+{
+  "title": "Roselia SeiStark",
+  "file": "index.html",
+  "description": "Roselia SeiStark 壁纸及桌面组件",
+  "type": "web",
+  "preview": "preview.png",
+  "general": {
+    "supportsaudioprocessing": true,
+    "properties": {
+      "bgm_vol": { "title": "BGM Volume", "type": "slider", "min": 0, "max": 100, "value": 30 },
+      "sakura_count": { "title": "Sakura Particles", "type": "slider", "min": 0, "max": 200, "value": 60 },
+      "audio_response": { "title": "Enable Visualizer", "type": "bool", "value": true }
+    }
+  }
+}

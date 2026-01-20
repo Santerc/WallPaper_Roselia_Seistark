@@ -395,6 +395,22 @@ async function saveConfig() {
     }
 }
 
+// Stop Server Function
+async function stopServer() {
+    // Direct stop without confirmation
+    try {
+        await fetch(`${BACKEND_URL}/system/stop`, { method: 'POST' });
+        showToast("Server stopping...", "success");
+        setTimeout(() => {
+            const orb = document.getElementById('main-orb');
+            if(orb) orb.classList.remove('online');
+            toggleSettingsModal();
+        }, 1000);
+    } catch (e) {
+        showToast("Failed to stop server", "error");
+    }
+}
+
 // ... existing code ...
 
 // Render Settings Form (Removed old text)

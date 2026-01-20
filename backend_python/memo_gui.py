@@ -1,15 +1,12 @@
 import sys
 import json
-import requests
+# Requests removed - using callbacks
 from PyQt6.QtWidgets import (QApplication, QWidget, QVBoxLayout, QHBoxLayout, 
                              QTextEdit, QLineEdit, QPushButton, QLabel, QCheckBox, 
                              QGraphicsDropShadowEffect, QFrame, QDateEdit, QCalendarWidget, 
                              QGraphicsOpacityEffect, QAbstractSpinBox, QSpinBox)
 from PyQt6.QtCore import Qt, QPoint, QDateTime, QDate, QTime, QSize
 from PyQt6.QtGui import QColor, QFont, QPalette, QBrush, QAction, QIcon, QPainter, QLinearGradient
-
-# Configuration
-SERVER_URL = "http://127.0.0.1:35678/api/memos"
 
 # ================== Style & Theme ==================
 # ... (Colors unchanged)
@@ -268,10 +265,12 @@ class DraggableTitleBar(QWidget):
          self.parent.old_pos = None
 
 class MemoWindow(QWidget):
-    def __init__(self, memo_data):
+    def __init__(self, memo_data, save_callback=None, delete_callback=None):
         super().__init__()
         self.memo_data = memo_data
         self.memo_id = memo_data.get('id', 0)
+        self.save_callback = save_callback
+        self.delete_callback = delete_callback
         self.old_pos = None
         
         # 1. Window Flags: Frameless, Translucent, Tool (no taskbar icon optionally)
@@ -438,15 +437,13 @@ class MemoWindow(QWidget):
         if not self.memo_id:
             return
             
-        payload = {"id": self.memo_id}
-        try:
-            # SERVER_URL is .../api/memos, so append /delete
-            url = SERVER_URL + "/delete"
-            requests.post(url, json=payload, timeout=2)
-            self.close()
-        except Exception as e:
-            print(f"Error deleting memo: {e}")
-            self.text_edit.setPlaceholderText(f"Error deleting: {e}")
+        if self.delete_callback:
+            try:
+                self.delete_callback(self.memo_id)
+                self.close()
+            except Exception as e:
+                print(f"Callback Error: {e}")
+                self.text_edit.setPlaceholderText(f"Error deleting: {e}")
 
     def save(self):
         # 1. Gather Data
@@ -469,22 +466,22 @@ class MemoWindow(QWidget):
             "enableReminder": reminder
         }
         
-        # 2. Send to Backend
-        try:
-            requests.post(SERVER_URL, json=payload, timeout=2)
-            self.close()
-        except Exception as e:
-            print(f"Error saving memo: {e}")
-            # Optional: Show error in UI
-            self.text_edit.setPlaceholderText(f"Error saving: {e}")
+        # 2. Invoke Callback
+        if self.save_callback:
+            try:
+                self.save_callback(payload)
+                self.close()
+            except Exception as e:
+                print(f"Callback Error: {e}")
+                self.text_edit.setPlaceholderText(f"Error saving: {e}")
 
-# Entry point wrapper for server.py
+# Entry point wrapper for standalone testing
 def run_editor(json_data_str=None):
     app = QApplication.instance()
     if not app:
         app = QApplication(sys.argv)
     else:
-        # If app exists (unlikely in subprocess mode but good practice)
+        # If app exists
         pass
 
     # Parse Data
@@ -495,7 +492,11 @@ def run_editor(json_data_str=None):
         except Exception as e:
             print(f"JSON Parse Error: {e}")
             
-    window = MemoWindow(memo_data)
+    # Mock callbacks for standalone testing
+    def mock_save(data): print(f"[MOCK SAVE]: {data}")
+    def mock_delete(mid): print(f"[MOCK DELETE]: {mid}")
+
+    window = MemoWindow(memo_data, mock_save, mock_delete)
     window.show()
     
     if not QApplication.instance().receivers(QApplication.instance().lastWindowClosed):
