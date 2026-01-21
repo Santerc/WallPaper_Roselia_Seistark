@@ -372,6 +372,10 @@ async function loadConfigToUI() {
         if (elMusic) elMusic.value = data.musicPath || '';
         if (elAuto) elAuto.checked = !!data.autoStart;
 
+        // Ensure Memos and Goals are rendered
+        renderMemos();
+        renderGoals();
+
     } catch (e) {
         console.error("Failed to load config", e);
         // Fallback render
@@ -940,6 +944,9 @@ function openMemoEditor(id) {
                 method: 'POST',
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(item)
+            }).then(() => {
+                console.log("Editor closed, reloading memos...");
+                loadMemos();
             });
         }
     });
@@ -951,6 +958,9 @@ function addNewMemo() {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({id: 0, title: "", content: "", dueDate: ""})
+    }).then(() => {
+        console.log("Editor closed, reloading memos...");
+        loadMemos();
     });
 }
 
@@ -1143,7 +1153,15 @@ function addGoal() {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({}) 
-    });
+    }).then(res => res.json())
+      .then(data => {
+          // Changed: backend now blocks until window closes.
+          // Once here, window is closed and data is saved.
+          // Reload config to refresh UI
+          console.log("Goals editor closed, refreshing...");
+          loadConfigToUI();
+      })
+      .catch(e => console.error("Failed to open goals editor", e));
 }
 
 function handleGoalInput(e) {

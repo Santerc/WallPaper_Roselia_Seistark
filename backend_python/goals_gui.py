@@ -107,7 +107,7 @@ class GoalsWindow(QWidget):
         # Window Flags
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.Window)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
-        self.resize(500, 600) # Increased Size
+        self.resize(700, 650) # Increased Width to prevent cutoff
 
         # Layout
         self.main_layout = QVBoxLayout()
@@ -187,24 +187,25 @@ class GoalsWindow(QWidget):
     def create_list_item(self, item_data, index):
         item_widget = QWidget()
         layout = QHBoxLayout()
-        layout.setContentsMargins(10, 5, 10, 5)
-        layout.setSpacing(10)
+        layout.setContentsMargins(10, 8, 10, 8) # More vertical margin
+        layout.setSpacing(15)
         
         # Done Checkbox (Visual in Editor)
         # We allow toggling done in editor too
-        check_btn = QPushButton("✔" if item_data.get("done", False) else "")
-        check_btn.setFixedSize(24, 24)
+        val = item_data.get("done", False)
+        check_btn = QPushButton("✔" if val else "")
+        check_btn.setFixedSize(36, 36) # Larger Checkbox
         check_btn.setCheckable(True)
-        check_btn.setChecked(item_data.get("done", False))
+        check_btn.setChecked(val)
         # Style dependent on state
-        bg = ACCENT_COLOR if item_data.get("done") else "transparent"
+        bg = ACCENT_COLOR if val else "transparent"
         border = ACCENT_COLOR
-        fg = "black" if item_data.get("done") else "transparent"
+        fg = "black" if val else "transparent"
         
         check_btn.setStyleSheet(f"""
             QPushButton {{
                 background: {bg}; border: 2px solid {border}; 
-                border-radius: 6px; color: {fg}; font-weight: bold;
+                border-radius: 8px; color: {fg}; font-weight: bold; font-size: 20px;
             }}
             QPushButton:hover {{ border-color: white; }}
         """)
@@ -212,23 +213,23 @@ class GoalsWindow(QWidget):
         
         # Text Input
         label = QLineEdit(item_data.get("text", "")) 
-        label.setFixedHeight(30)
+        label.setFixedHeight(50) # Much Taller Input (was 30)
         label.setStyleSheet("""
             background: transparent; border: none; 
-            font-size: 14px; color: white; border-bottom: 1px solid rgba(255,255,255,0.1);
+            font-size: 20px; color: white; border-bottom: 1px solid rgba(255,255,255,0.1);
         """)
-        if item_data.get("done"):
+        if val:
              label.setStyleSheet(label.styleSheet() + "color: rgba(255,255,255,0.5); text-decoration: line-through;")
              
         label.textChanged.connect(lambda t: self.update_item_text(index, t))
         
         # Delete Button
         del_btn = QPushButton("×")
-        del_btn.setFixedSize(28, 28)
+        del_btn.setFixedSize(36, 36) # Larger delete button
         del_btn.setStyleSheet("""
             QPushButton { 
                 background: rgba(255, 118, 117, 0.2); color: #ff7675; 
-                border: 1px solid #ff7675; border-radius: 6px; font-size: 18px; line-height: 18px;
+                border: 1px solid #ff7675; border-radius: 8px; font-size: 24px; line-height: 24px;
             }
             QPushButton:hover { background: #ff7675; color: white; }
         """)
@@ -240,7 +241,10 @@ class GoalsWindow(QWidget):
         item_widget.setLayout(layout)
         
         list_item = QListWidgetItem(self.list_widget)
-        list_item.setSizeHint(item_widget.sizeHint())
+        # Increase size hint for the row
+        sz = item_widget.sizeHint()
+        sz.setHeight(70) 
+        list_item.setSizeHint(sz)
         
         self.list_widget.setItemWidget(list_item, item_widget)
     

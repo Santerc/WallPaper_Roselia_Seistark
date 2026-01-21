@@ -49,9 +49,9 @@ CORS(app)  # Enable CORS for all routes
 # ================= GUI Manager (Bridge) =================
 class GuiManager(QObject):
     # Signals to Main Thread
-    open_editor_signal = pyqtSignal(dict)
+    open_editor_signal = pyqtSignal(dict, object) # Added object for Event param
     pick_file_signal = pyqtSignal()
-    open_goals_signal = pyqtSignal(list)
+    open_goals_signal = pyqtSignal(list, object)
 
     def __init__(self):
         super().__init__()
@@ -65,8 +65,8 @@ class GuiManager(QObject):
         self.pick_file_signal.connect(self.show_file_picker_slot)
         self.open_goals_signal.connect(self.show_goals_editor_slot)
 
-    @pyqtSlot(dict)
-    def show_editor_slot(self, data):
+    @pyqtSlot(dict, object)
+    def show_editor_slot(self, data, done_event):
         def on_save(memo_data):
             self.update_memo(memo_data)
         def on_delete(memo_id):
@@ -76,19 +76,54 @@ class GuiManager(QObject):
             self.active_window.close()
             
         self.active_window = MemoWindow(data, on_save, on_delete)
+        
+        # Wrap close event to signal done
+        original_close = self.active_window.closeEvent
+        def wrapped_close(event):
+            if done_event and not done_event.is_set():
+                done_event.set()
+            if original_close:
+                original_close(event)
+            else:
+                event.accept()
+        self.active_window.closeEvent = wrapped_close
+        
         self.active_window.show()
         self.active_window.activateWindow()
         self.active_window.raise_()
 
-    @pyqtSlot(list)
-    def show_goals_editor_slot(self, items):
+    @pyqtSlot(list, object)
+    def show_goals_editor_slot(self, items, done_event):
         def on_save(new_items):
              self.update_goals_internal(new_items)
+             # Signal that we are done
+             if done_event:
+                 done_event.set()
 
+        # If user just closes without saving? 
+        # Ideally we want to unblock the request even on close.
+        # But GoalsWindow handles save on close or specific button?
+        # Let's adjust GoalsWindow to always call callback or we wrap close event.
+        # For now, simplest is: on_save is called when "Save" clicked. 
+        # If user closes X, we might miss the event. 
+        # We need to ensure event is set when window closes regardless.
+        
         if self.goals_window:
             self.goals_window.close()
             
         self.goals_window = GoalsWindow(items, on_save)
+        
+        # Monkey patch or connect close event
+        original_close = self.goals_window.closeEvent
+        def wrapped_close(event):
+            if done_event and not done_event.is_set():
+                done_event.set()
+            if original_close:
+                original_close(event)
+            else:
+                event.accept()
+        self.goals_window.closeEvent = wrapped_close
+        
         self.goals_window.show()
         self.goals_window.activateWindow()
         self.goals_window.raise_()
@@ -398,7 +433,13 @@ def open_editor():
     data = request.json
     global gui_manager
     if gui_manager:
-        gui_manager.open_editor_signal.emit(data)
+        # Create event
+        done_event = threading.Event()
+        gui_manager.open_editor_signal.emit(data, done_event)
+        
+        # Wait for close
+        done_event.wait(timeout=300)
+        
         return jsonify({"success": True})
     else:
         return jsonify({"error": "GUI Manager not active"}), 500
@@ -409,7 +450,16 @@ def open_goals_editor():
     if gui_manager:
         config = load_config()
         items = config.get("dailyGoals", {}).get("items", [])
-        gui_manager.open_goals_signal.emit(items)
+        
+        # Create an event to wait for
+        done_event = threading.Event()
+        
+        gui_manager.open_goals_signal.emit(items, done_event)
+        
+        # Wait for user to enable save or close
+        # Add a timeout just in case it hangs forever (e.g. 5 minutes)
+        done_event.wait(timeout=300) 
+        
         return jsonify({"success": True})
     else:
         return jsonify({"error": "GUI Manager not active"}), 500
