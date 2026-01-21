@@ -65,14 +65,14 @@ input, textarea, button {
 /* ================= Glass Memo (Beautified) ================= */
 .memo-container {
     position: absolute;
-    bottom: 280px; right: 0;
+    bottom: 250px; right: 0; /* Lowered slightly */
     z-index: 200;
     transition: transform 0.4s cubic-bezier(0.19, 1, 0.22, 1);
     display: flex; align-items: flex-end;
     filter: drop-shadow(-5px 5px 20px rgba(0,0,0,0.6));
     pointer-events: auto !important; /* Force interaction */
 }
-.memo-container.closed { transform: translateX(380px); }
+.memo-container.closed { transform: translateX(480px); } /* Increased width offset */
 
 /* ================= Sidebar Switcher ================= */
 .sidebar-stack {
@@ -145,7 +145,7 @@ input, textarea, button {
 }
 
 .memo-glass {
-    width: 380px; height: 600px;
+    width: 480px; height: 750px; /* Increased 20-25% */
     background: rgba(30, 30, 45, 0.85); /* Dark Deep Glass */
     backdrop-filter: blur(35px);
     border-top-left-radius: 24px;
@@ -242,7 +242,7 @@ input, textarea, button {
     background: #a29bfe; border-color: #adisplay: flex; flex-direction: column; justify-content: center; }
 
 .memo-title {
-    font-size: 16px; font-weight: 600; color: #fff;
+    font-size: 20px; font-weight: 600; color: #fff; /* Increased font size */
     margin-bottom: 0; letter-spacing: 0.5px;
     line-height: 1.4;
 }
@@ -479,44 +479,62 @@ input, textarea, button {
 .memo-view { display: none; flex: 1; flex-direction: column; overflow: hidden; }
 .memo-view.active { display: flex; }
 
-/* Daily Goals Styles */
+/* Daily Goals Styles for Progress & Button */
 .goal-header {
-    padding: 0 25px 15px 25px;
+    padding: 20px 25px;
     border-bottom: 1px solid rgba(255,255,255,0.05);
-}
-.progress-container {
-    margin-bottom: 15px;
-}
-.progress-text {
-    display: flex; justify-content: space-between;
-    font-size: 11px; color: #a29bfe; font-weight: 700; margin-bottom: 5px;
-}
-.progress-bar-bg {
-    width: 100%; height: 6px; background: rgba(255,255,255,0.1);
-    border-radius: 3px; overflow: hidden;
-}
-.progress-bar-fill {
-    width: 0%; height: 100%; 
-    background: linear-gradient(90deg, #fd79a8, #a29bfe);
-    box-shadow: 0 0 10px rgba(162, 155, 254, 0.5);
-    transition: width 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    display: flex; flex-direction: column; align-items: center;
 }
 
-.goal-input-row {
-    display: flex; gap: 10px;
+.progress-details {
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px;
 }
-.goal-input-row input {
-    flex: 1; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 4px; padding: 8px 12px; color: white; outline: none;
-    font-size: 13px;
+
+#goal-percent-big {
+    font-size: 36px; font-weight: 800; color: #fff;
+    text-shadow: 0 0 20px rgba(162, 155, 254, 0.6);
+    line-height: 1;
 }
-.goal-input-row button {
-    background: rgba(162, 155, 254, 0.2); border: 1px solid rgba(162, 155, 254, 0.4);
-    color: white; border-radius: 4px; padding: 0 15px; font-weight: bold; font-size: 11px;
-    cursor: pointer; transition: all 0.2s;
+
+.progress-label {
+    font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4); 
+    font-weight: 600; margin-top: 5px;
 }
-.goal-input-row button:hover {
-    background: #a29bfe; box-shadow: 0 0 10px #a29bfe;
+
+.progress-glow-bar {
+    width: 100%; height: 8px; 
+    background: rgba(0,0,0,0.3); border-radius: 4px;
+    margin: 5px 0; overflow: hidden; position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.glow-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #6c5ce7, #a29bfe, #00cec9);
+    background-size: 200% 100%;
+    animation: gradientFlow 3s linear infinite;
+    box-shadow: 0 0 15px rgba(162, 155, 254, 0.5);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes gradientFlow {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+.manage-goals-btn {
+    background: rgba(162, 155, 254, 0.15);
+    border: 1px solid rgba(162, 155, 254, 0.4);
+    color: #a29bfe;
+    padding: 8px 30px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.3s;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.manage-goals-btn:hover {
+    background: #a29bfe; color: black;
+    box-shadow: 0 0 20px rgba(162, 155, 254, 0.6);
+    transform: scale(1.05);
 }
 
 .goal-list {
@@ -528,20 +546,21 @@ input, textarea, button {
 }
 
 .goal-item {
-    display: flex; align-items: center; gap: 12px;
-    padding: 10px; border-radius: 8px;
+    display: flex; align-items: center; gap: 15px; /* Increased gap */
+    padding: 15px; /* Increased padding */
+    border-radius: 10px;
     background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
     transition: all 0.2s;
 }
 .goal-item:hover { background: rgba(255,255,255,0.08); }
-.goal-item.done { opacity: 0.5; }
-.goal-text { flex: 1; font-size: 13px; color: #eee; }
-.goal-item.done .goal-text { text-decoration: line-through; color: #888; }
+.goal-item.done { opacity: 0.6; }
+.goal-text { flex: 1; font-size: 16px; color: #eee; line-height: 1.4; } /* Larger Font */
+.goal-item.done .goal-text { text-decoration: line-through; color: #aaa; }
 
 .goal-check {
-    width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.5); border-radius: 4px;
+    width: 22px; height: 22px; border: 2px solid rgba(255,255,255,0.5); border-radius: 6px; /* Larger Checkbox */
     cursor: pointer; display: flex; align-items: center; justify-content: center;
-    font-size: 12px; color: transparent;
+    font-size: 14px; color: transparent;
 }
 .goal-item.done .goal-check {
     background: #00cec9; border-color: #00cec9; color: #000;

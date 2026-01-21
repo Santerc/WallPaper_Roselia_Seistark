@@ -85,18 +85,15 @@
             <!-- View: GOALS -->
             <div class="memo-view" id="view-goals">
                  <div class="goal-header">
-                     <div class="progress-container">
-                         <div class="progress-text">
-                             <span>TARGET PROGRESS</span>
-                             <span id="goal-percent">0%</span>
-                         </div>
-                         <div class="progress-bar-bg">
-                             <div class="progress-bar-fill" id="goal-bar"></div>
-                         </div>
+                     <div class="progress-details">
+                            <span id="goal-percent-big">0%</span>
+                            <div class="progress-glow-bar">
+                                <div class="glow-fill" id="goal-bar"></div>
+                            </div>
+                            <span class="progress-label">DAILY COMPLETION</span>
                      </div>
-                     <div class="goal-input-row">
-                         <input type="text" id="new-goal-input" placeholder="Add a new goal..." onkeypress="handleGoalInput(event)">
-                         <button onclick="addGoal()">ADD</button>
+                     <div class="goal-input-row" style="justify-content: center; margin-top: 15px;">
+                         <button onclick="addGoal()" class="manage-goals-btn">MANAGE GOALS</button>
                      </div>
                  </div>
                  <div class="goal-list" id="goal-list-container">

@@ -24,7 +24,20 @@
     "autoStart": false,
     "dailyGoals": {
         "date": "2026-01-21",
-        "items": []
+        "items": [
+            {
+                "done": false,
+                "text": "模电学习"
+            },
+            {
+                "done": false,
+                "text": "航概100题整理"
+            },
+            {
+                "done": false,
+                "text": "日语学习"
+            }
+        ]
     },
     "memos": [
         {

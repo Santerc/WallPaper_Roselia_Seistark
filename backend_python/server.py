@@ -21,6 +21,7 @@ from datetime import datetime
 from PyQt6.QtWidgets import QApplication, QFileDialog
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from memo_gui import MemoWindow
+from goals_gui import GoalsWindow
 
 # ================= Configuration =================
 PORT = 35678
@@ -50,39 +51,47 @@ class GuiManager(QObject):
     # Signals to Main Thread
     open_editor_signal = pyqtSignal(dict)
     pick_file_signal = pyqtSignal()
-    
-    # Signals back to Flask Thread (via Events/Variables, though Flask requests usually wait)
-    # Since Flask handlers are in threads, we can use simple threading Events or similar if we needed sync
-    # But for 'open_editor' it's async (fire and forget usually), but 'pick_file' waits for return.
+    open_goals_signal = pyqtSignal(list)
 
     def __init__(self):
         super().__init__()
         self.active_window = None
+        self.goals_window = None
         self.file_picker_result = None
         self.file_picker_event = threading.Event()
         
         # Connect signals
         self.open_editor_signal.connect(self.show_editor_slot)
         self.pick_file_signal.connect(self.show_file_picker_slot)
+        self.open_goals_signal.connect(self.show_goals_editor_slot)
 
     @pyqtSlot(dict)
     def show_editor_slot(self, data):
-        # Callback wrapper to handle save from GUI directly in this process
         def on_save(memo_data):
             self.update_memo(memo_data)
-            
         def on_delete(memo_id):
             self.delete_memo_internal(memo_id)
 
-        # Close existing if open (optimization)
         if self.active_window:
             self.active_window.close()
             
         self.active_window = MemoWindow(data, on_save, on_delete)
         self.active_window.show()
-        # Bring to front
         self.active_window.activateWindow()
         self.active_window.raise_()
+
+    @pyqtSlot(list)
+    def show_goals_editor_slot(self, items):
+        def on_save(new_items):
+             self.update_goals_internal(new_items)
+
+        if self.goals_window:
+            self.goals_window.close()
+            
+        self.goals_window = GoalsWindow(items, on_save)
+        self.goals_window.show()
+        self.goals_window.activateWindow()
+        self.goals_window.raise_()
 
     @pyqtSlot()
     def show_file_picker_slot(self):
@@ -95,14 +104,11 @@ class GuiManager(QObject):
         config = load_config()
         memos = config.get("memos", [])
         
-        # Determine ID
         if not data.get("id"):
-            # New Memo: Generate ID
             new_id = int(time.time() * 1000)
             data["id"] = new_id
             memos.append(data)
         else:
-            # Update existing
             found = False
             for i, m in enumerate(memos):
                 if m.get("id") == data.get("id"):
@@ -110,7 +116,7 @@ class GuiManager(QObject):
                     found = True
                     break
             if not found:
-                memos.append(data) # Fallback
+                memos.append(data)
                 
         config["memos"] = memos
         save_config(config)
@@ -122,6 +128,14 @@ class GuiManager(QObject):
         config["memos"] = [m for m in memos if m.get("id") != memo_id]
         save_config(config)
         print(f"Memo deleted: {memo_id}")
+
+    def update_goals_internal(self, items):
+        config = load_config()
+        if "dailyGoals" not in config or not isinstance(config["dailyGoals"], dict):
+             config["dailyGoals"] = {"date": "", "items": []}
+        config["dailyGoals"]["items"] = items
+        save_config(config)
+
 
 # Global instance
 gui_manager = None
@@ -388,6 +402,30 @@ def open_editor():
         return jsonify({"success": True})
     else:
         return jsonify({"error": "GUI Manager not active"}), 500
+
+@app.route('/api/goals/open_editor', methods=['POST'])
+def open_goals_editor():
+    global gui_manager
+    if gui_manager:
+        config = load_config()
+        items = config.get("dailyGoals", {}).get("items", [])
+        gui_manager.open_goals_signal.emit(items)
+        return jsonify({"success": True})
+    else:
+        return jsonify({"error": "GUI Manager not active"}), 500
+
+@app.route('/api/goals/update_items', methods=['POST'])
+def update_goals_items():
+    data = request.json
+    new_items = data.get("items", [])
+    
+    config = load_config()
+    if "dailyGoals" not in config or not isinstance(config["dailyGoals"], dict):
+         config["dailyGoals"] = {"date": "", "items": []}
+         
+    config["dailyGoals"]["items"] = new_items
+    save_config(config)
+    return jsonify({"success": True})
 
 @app.route('/system/stop', methods=['POST'])
 def stop_server():

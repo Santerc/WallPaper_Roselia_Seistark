@@ -1086,7 +1086,7 @@ function renderGoals() {
     const pStr = `${percent}%`;
     
     // Text
-    const txt = document.getElementById('goal-percent');
+    const txt = document.getElementById('goal-percent-big'); // UPDATE ID
     if(txt) txt.innerText = pStr;
     
     // Bar
@@ -1138,17 +1138,12 @@ function toggleMemo() {
 }
 
 function addGoal() {
-    const input = document.getElementById('new-goal-input');
-    const text = input.value.trim();
-    if (!text) return;
-    
-    if (!currentConfig.dailyGoals) currentConfig.dailyGoals = { date: getTodayStr(), items: [] };
-    
-    currentConfig.dailyGoals.items.push({ text: text, done: false });
-    input.value = '';
-    
-    saveConfigToServer();
-    renderGoals();
+    // Open External Editor
+    fetch('http://127.0.0.1:35678/api/goals/open_editor', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({}) 
+    });
 }
 
 function handleGoalInput(e) {
