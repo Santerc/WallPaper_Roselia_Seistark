@@ -92,8 +92,9 @@
                             </div>
                             <span class="progress-label">DAILY COMPLETION</span>
                      </div>
-                     <div class="goal-input-row" style="justify-content: center; margin-top: 15px;">
+                     <div class="goal-input-row" style="display: flex; justify-content: center; margin-top: 15px; gap: 10px;">
                          <button onclick="addGoal()" class="manage-goals-btn">MANAGE GOALS</button>
+                         <button onclick="loadConfigToUI(); showToast('Refreshed');" class="manage-goals-btn" style="width: auto; padding: 0 15px;" title="Refresh Data">↻</button>
                      </div>
                  </div>
                  <div class="goal-list" id="goal-list-container">

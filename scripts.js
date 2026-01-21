@@ -66,9 +66,14 @@ let currentConfig = { apps: [], memos: [], dailyGoals: null, musicPath: "", auto
 // --- DEBUG SYSTEM (Global) ---
 const debugEl = document.getElementById('debug-console');
 function logDebug(msg) {
-    if(!debugEl || debugEl.style.display === 'none') return;
+    console.log(msg); // Also log to browser console
+    if(!debugEl) return;
+    
+    // Only show if config enables it (controlled by loadConfigToUI)
+    // if(debugEl.style.display === 'none') debugEl.style.display = 'block'; <--- Removed forcing
+    
     const time = new Date().toTimeString().split(' ')[0];
-    debugEl.innerText = `[${time}] ${msg}\n` + debugEl.innerText.substring(0, 500);
+    debugEl.innerText = `[${time}] ${msg}\n` + debugEl.innerText.substring(0, 1000);
 }
 
 // --- Edit Flow State ---
@@ -353,16 +358,27 @@ function launchMusicApp() {
 
 // Load Config
 async function loadConfigToUI() {
+    logDebug("Starting Config Reload from Main (Line 359)...");
     try {
-        const res = await fetch(`${BACKEND_URL}/config`);
+        // Add timestamp to prevent caching
+        const res = await fetch(`${BACKEND_URL}/config?t=${Date.now()}`);
         let data = await res.json();
+        
+        logDebug("Config Fetched Successfully.");
 
         // Normalize
         data = normalizeConfig(data);
         currentConfig = data;
 
+        // Apply Debug
+        if(currentConfig.debug) {
+            if(debugEl) debugEl.style.display = 'block';
+        } else {
+            if(debugEl) debugEl.style.display = 'none';
+        }
+
         // Update Global UI
-        renderDock();
+        try { renderDock(); } catch(e) { console.error("Dock Render fail", e); }
 
         // Update Settings UI
         renderSettingsList();
@@ -373,13 +389,14 @@ async function loadConfigToUI() {
         if (elAuto) elAuto.checked = !!data.autoStart;
 
         // Ensure Memos and Goals are rendered
-        renderMemos();
-        renderGoals();
+        try { loadMemos(); } catch(e) { console.error("Memo Render fail", e); }
+        
+        logDebug(`Reloading Goals. Items: ${currentConfig.dailyGoals?.items?.length || 0}`);
+        try { initGoals(); } catch(e) { console.error("Goals Render fail", e); }
 
     } catch (e) {
-        console.error("Failed to load config", e);
-        // Fallback render
-        renderDock();
+        logDebug("Config Load Error: " + e.message);
+        console.error("Config Load Failed", e);
     }
 }
 
@@ -945,8 +962,11 @@ function openMemoEditor(id) {
                 headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify(item)
             }).then(() => {
-                console.log("Editor closed, reloading memos...");
-                loadMemos();
+                console.log("Editor opened, monitoring...");
+                waitForEditorClose('memo', () => {
+                    console.log("Editor closed, reloading memos...");
+                    loadMemos();
+                });
             });
         }
     });
@@ -1036,16 +1056,6 @@ document.addEventListener('mousemove', (e) => {
 });
 // ...
 
-function loadConfigToUI() {
-    // ... config loading logic ...
-    // Check debug flag
-    if(currentConfig.debug) {
-        if(debugEl) debugEl.style.display = 'block';
-    } else {
-        if(debugEl) debugEl.style.display = 'none';
-    }
-}
-
 // ==========================================
 // Daily Goals Logic
 // ==========================================
@@ -1061,9 +1071,18 @@ function initGoals() {
     }
     
     // Check logic: Reset if new day
-    if (currentConfig.dailyGoals.date !== getTodayStr()) {
+    const today = getTodayStr();
+    const savedDate = currentConfig.dailyGoals.date;
+    
+    // Optimization: If savedDate is missing (first run/migration), assume today to prevent data loss on refresh
+    if (!savedDate) {
+        currentConfig.dailyGoals.date = today;
+        saveConfigToServer();
+    }
+    else if (savedDate !== today) {
          // Auto archive? or just wipe? Let's wipe for now.
-         currentConfig.dailyGoals = { date: getTodayStr(), items: [] };
+         console.log("New Day Detected! Resetting Goals.");
+         currentConfig.dailyGoals = { date: today, items: [] };
          saveConfigToServer();
     }
     
@@ -1147,7 +1166,47 @@ function toggleMemo() {
    openSidebarTab('memos');
 }
 
+function waitForEditorClose(targetType, callback) {
+    const pollId = setInterval(() => {
+        fetch(`${BACKEND_URL}/api/system/editor_status`)
+            .then(res => res.json())
+            .then(activeList => {
+                if (!activeList.includes(targetType)) {
+                    clearInterval(pollId);
+                    if (callback) callback();
+                }
+            })
+            .catch(e => {
+                console.error("Polling check failed", e);
+            });
+    }, 1000);
+}
+
+function waitForEditorClose(targetType, callback) {
+    // Recursive Long Polling
+    function check() {
+        console.log(`Checking ${targetType} status...`);
+        fetch(`${BACKEND_URL}/api/system/wait_for_close?type=${targetType}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.closed) {
+                    if (callback) callback();
+                } else {
+                    // Still open, check again immediately
+                    check();
+                }
+            })
+            .catch(e => {
+                console.error("Long polling failed, retrying in 2s...", e);
+                setTimeout(check, 2000);
+            });
+    }
+    // Delay first check slightly to ensure backend state updated
+    setTimeout(check, 1000);
+}
+
 function addGoal() {
+    showToast("Opening Goals Editor...", "info");
     // Open External Editor
     fetch('http://127.0.0.1:35678/api/goals/open_editor', {
         method: 'POST',
@@ -1155,13 +1214,18 @@ function addGoal() {
         body: JSON.stringify({}) 
     }).then(res => res.json())
       .then(data => {
-          // Changed: backend now blocks until window closes.
-          // Once here, window is closed and data is saved.
-          // Reload config to refresh UI
-          console.log("Goals editor closed, refreshing...");
-          loadConfigToUI();
+          showToast("Monitoring Editor Status...", "info");
+          // Long Poll for close
+          waitForEditorClose('goals', () => {
+              showToast("Editor Closed. Refreshing Data...", "success");
+              console.log("Goals editor closed, refreshing...");
+              loadConfigToUI();
+          });
       })
-      .catch(e => console.error("Failed to open goals editor", e));
+      .catch(e => {
+          console.error("Failed to open goals editor", e);
+          showToast("Failed to open editor", "error");
+      });
 }
 
 function handleGoalInput(e) {
