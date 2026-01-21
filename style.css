@@ -74,25 +74,74 @@ input, textarea, button {
 }
 .memo-container.closed { transform: translateX(380px); }
 
-.memo-icon {
-    position: absolute; left: -50px; bottom: 20px;
-    width: 50px; height: 80px;
+/* ================= Sidebar Switcher ================= */
+.sidebar-stack {
+    position: absolute; left: -60px; bottom: 20px;
+    display: flex; flex-direction: column; gap: 12px;
+}
+
+.sidebar-btn {
+    width: 60px; height: 60px;
     background: linear-gradient(135deg, rgba(230,230,250,0.15) 0%, rgba(230,230,250,0.05) 100%);
     backdrop-filter: blur(15px);
     border-radius: 12px 0 0 12px;
     border: 1px solid rgba(255,255,255,0.25); border-right: none;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    color: rgba(255,255,255,0.9);
+    cursor: pointer; position: relative;
+    color: rgba(255,255,255,0.8);
     transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
     box-shadow: -2px 2px 10px rgba(0,0,0,0.2);
+    overflow: hidden; /* For liquid clip */
 }
-.memo-icon svg { width: 30px; height: 30px; filter: drop-shadow(0 0 5px rgba(255,255,255,0.5)); }
-.memo-icon:hover { 
-    background: rgba(255,255,255,0.2); 
-    width: 55px; left: -55px;
-    box-shadow: -5px 0 20px rgba(162, 155, 254, 0.5);
+.sidebar-btn:hover {
+    background: rgba(255,255,255,0.2);
+    transform: translateX(-5px);
+    box-shadow: -5px 5px 15px rgba(0,0,0,0.3);
     color: #fff;
+}
+.sidebar-btn svg { z-index: 2; filter: drop-shadow(0 2px 5px rgba(0,0,0,0.5)); }
+
+/* Active State Indicator */
+.sidebar-btn.active {
+    background: rgba(255,255,255,0.25);
+    border-color: rgba(162, 155, 254, 0.6);
+    box-shadow: inset 0 0 15px rgba(162, 155, 254, 0.2);
+    color: #fff;
+}
+.sidebar-btn.active::after {
+    content: ''; position: absolute; right: 0; top: 10%; bottom: 10%; width: 3px;
+    background: #a29bfe; border-radius: 2px;
+}
+
+/* Liquid Goal Icon */
+.goal-btn .bottle-svg {
+    width: 32px; height: 32px;
+    stroke: rgba(255,255,255,0.8);
+    fill: rgba(0,0,0,0.2); /* Contrast background */
+}
+.liquid-bottle {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1; pointer-events: none;
+    /* Mask the fill to the bottle shape? 
+       CSS path clipping is tricky without fixed sizes.
+       Alternative: Just fill the whole button background like a tank.
+       Or: Put fill BEHIND the svg, and SVG has fill="black" with "mix-blend-mode"? 
+       Simplest: SVG is transparent outline, Fill is a div at bottom with wave.
+    */
+    display: flex; align-items: flex-end;
+}
+.liquid-fill {
+    width: 100%; height: 0%; /* Dynamic */
+    background: linear-gradient(0deg, #6c5ce7 0%, #a29bfe 100%);
+    opacity: 0.6;
+    transition: height 0.5s ease-out;
+    filter: drop-shadow(0 0 5px #6c5ce7);
+}
+/* Wave animation? */
+.liquid-fill::before {
+    content: ''; position: absolute; top: -5px; left: 0; width: 100%; height: 10px;
+    background: rgba(162, 155, 254, 0.4);
+    border-radius: 50%; transform: scaleY(0.5);
 }
 
 .memo-glass {

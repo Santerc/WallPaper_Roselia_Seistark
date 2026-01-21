@@ -1083,8 +1083,58 @@ function renderGoals() {
     
     // Update Progress
     const percent = items.length > 0 ? Math.round((doneCount / items.length) * 100) : 0;
-    document.getElementById('goal-percent').innerText = `${percent}%`;
-    document.getElementById('goal-bar').style.width = `${percent}%`;
+    const pStr = `${percent}%`;
+    
+    // Text
+    const txt = document.getElementById('goal-percent');
+    if(txt) txt.innerText = pStr;
+    
+    // Bar
+    const bar = document.getElementById('goal-bar');
+    if(bar) bar.style.width = pStr;
+    
+    // Sidebar Icon Liquid
+    const liquid = document.getElementById('sidebar-liquid-fill');
+    if(liquid) liquid.style.height = pStr;
+}
+
+// SideBar Tab Switching
+function openSidebarTab(tabName) {
+    const w = document.getElementById('memo-widget');
+    if(!w) return;
+    
+    const isClosed = w.classList.contains('closed');
+    const memoView = document.getElementById('view-memos');
+    const goalsView = document.getElementById('view-goals');
+    
+    // Case 1: Closed -> Open specific tab
+    if(isClosed) {
+        w.classList.remove('closed');
+        switchMemoTab(tabName);
+    } 
+    // Case 2: Open -> Check if same tab
+    else {
+        // Check which view is active
+        const isMemoActive = memoView && memoView.classList.contains('active');
+        const isGoalsActive = goalsView && goalsView.classList.contains('active');
+        
+        if (tabName === 'memos' && isMemoActive) {
+            // Already active? Toggle close.
+            w.classList.add('closed');
+        } else if (tabName === 'goals' && isGoalsActive) {
+            // Already active? Toggle close.
+            w.classList.add('closed');
+        } else {
+            // Different tab? Switch.
+            switchMemoTab(tabName);
+        }
+    }
+}
+
+// Keep existing for backward compat if needed
+function toggleMemo() {
+   // Default to memos probably
+   openSidebarTab('memos');
 }
 
 function addGoal() {
