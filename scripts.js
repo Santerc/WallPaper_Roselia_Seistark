@@ -152,10 +152,8 @@ function addNewAppSlot() {
 }
 
 window.removeAppSlot = function(index) {
-    if(confirm('Delete this shortcut?')) {
-        currentConfig.apps.splice(index, 1);
-        renderSettingsList();
-    }
+    currentConfig.apps.splice(index, 1);
+    renderSettingsList();
 };
 
 // --- Editor Modal Logic ---

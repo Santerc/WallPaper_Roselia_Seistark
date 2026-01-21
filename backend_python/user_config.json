@@ -19,14 +19,13 @@
             "icon": "E:/Adobe Audition 2022/Adobe Audition 2022/resources/content/images/appIcon.png",
             "name": "Adobe Audition",
             "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe"
-        },
-        {
-            "name": "哔哩哔哩",
-            "path": "D:/bilibili/哔哩哔哩.exe",
-            "icon": "D:/bilibili/uninstallerIcon.ico"
         }
     ],
     "autoStart": false,
+    "dailyGoals": {
+        "date": "2026-01-21",
+        "items": []
+    },
     "memos": [
         {
             "content": "555555\n555555\n\n\n55555\n\n55\n55",
@@ -77,9 +76,5 @@
             "title": "111"
         }
     ],
-    "musicPath": "D:/CloudMusic/cloudmusic.exe",
-    "dailyGoals": {
-        "date": "2026-01-21",
-        "items": []
-    }
+    "musicPath": "D:/CloudMusic/cloudmusic.exe"
 }
