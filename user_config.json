@@ -1,0 +1,48 @@
+{
+    "apps": [
+        {
+            "icon": "D:/SynthesizerV/Application/svp-icon.ico",
+            "name": "Svsharp",
+            "path": "D:/SynthesizerV/Application/svsharp.exe"
+        },
+        {
+            "icon": "D:/Typora/resources/assets/app.ico",
+            "name": "Typora",
+            "path": "D:/Typora/Typora.exe"
+        },
+        {
+            "icon": "D:/MatLab2024b/Application/ui/install/update_installer/images/apple-icons/apple-touch-icon-72x72.png",
+            "name": "Matlab",
+            "path": "D:/MatLab2024b/Application/bin/matlab.exe"
+        },
+        {
+            "icon": "E:/Adobe Audition 2022/Adobe Audition 2022/resources/content/images/appIcon.png",
+            "name": "Adobe Audition",
+            "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe"
+        }
+    ],
+    "autoStart": true,
+    "dailyGoals": {
+        "date": "2026-01-21",
+        "items": [
+            {
+                "done": true,
+                "text": "航概100题整理"
+            },
+            {
+                "done": false,
+                "text": "日语学习"
+            },
+            {
+                "done": true,
+                "text": "模电复习"
+            },
+            {
+                "done": true,
+                "text": "壁纸滚动条修复，完成日课开发"
+            }
+        ]
+    },
+    "memos": [],
+    "musicPath": "D:/CloudMusic/cloudmusic.exe"
+}
