@@ -60,13 +60,51 @@ if (modalEl) {
 // ==========================================
 // 3. Backend Integration & Dynamic Apps
 // ==========================================
-const BACKEND_URL = "http://localhost:35678";
-let currentConfig = { apps: [], musicPath: "", autoStart: false };
+const BACKEND_URL = "http://127.0.0.1:35678";
+let currentConfig = { apps: [], memos: [], dailyGoals: null, musicPath: "", autoStart: false, debug: false }; // Init default
+
+// --- DEBUG SYSTEM (Global) ---
+const debugEl = document.getElementById('debug-console');
+function logDebug(msg) {
+    if(!debugEl || debugEl.style.display === 'none') return;
+    const time = new Date().toTimeString().split(' ')[0];
+    debugEl.innerText = `[${time}] ${msg}\n` + debugEl.innerText.substring(0, 500);
+}
 
 // --- Edit Flow State ---
 let editingIndex = -1; // -1 means adding new
 
-// Helper to handle local file paths for images
+// Initialize Config on Load
+const ts = Date.now();
+fetch(`${BACKEND_URL}/config?t=${ts}`)
+    .then(res => {
+         if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+         return res.json();
+    })
+    .then(data => {
+        if (!data) throw new Error("No data received");
+        currentConfig = normalizeConfig(data);
+        
+        // Apply Debug
+        if(debugEl) debugEl.style.display = currentConfig.debug ? 'block' : 'none';
+        
+        // Restore Core UI
+        // Wrap in try-catch to prevent one failure from blocking others
+        try { renderDock(); } catch(e) { console.error("Render Dock failed", e); }
+        try { loadMemos(); } catch(e) { console.error("Load Memos failed", e); }
+
+        // Prepare Goals
+        try { initGoals(); } catch(e) { console.error("Init Goals failed", e); }
+        
+        renderSettingsList(); 
+    })
+    .catch(e => {
+        console.error("Config Load Error", e);
+        // Fallback: If config fails, try to load Memos anyway (they use separate endpoint)
+        loadMemos();
+    });
+    
+// ... Helper to handle local file paths for images ...
 function formatLocalUrl(path) {
     if (!path) return '';
     path = path.replace(/\\/g, '/');
@@ -755,18 +793,55 @@ function toggleMemo() {
     if(w) w.classList.toggle('closed');
 }
 
+let lastMemoDataHash = "";
+
 function loadMemos() {
     fetch('http://127.0.0.1:35678/api/memos')
         .then(res => res.json())
         .then(memos => {
+            // Simple checksum to avoid dom refresh if data hasn't changed
+            // This prevents scroll jumping and interaction resetting
+            const currentHash = JSON.stringify(memos);
+            if (currentHash === lastMemoDataHash) return;
+            lastMemoDataHash = currentHash;
+
             const container = document.getElementById('memo-list-container');
             if(!container) return;
+            
+            // Save scroll position
+            const scrollPos = container.scrollTop;
+            
             container.innerHTML = '';
-            // Sort by id desc (newest first) but keeping existing order if provided by backend
-            // For now simple append
+            // Sort: Not done first, then by ID (newest)
+            // Or just keep arbitrary order. Let's do a simple sort.
+            // Active first, then Done. Within each, newest first.
+            memos.sort((a, b) => {
+                if (a.done === b.done) {
+                    return b.id - a.id; 
+                }
+                return a.done ? 1 : -1;
+            });
+            
             memos.forEach(m => renderMemoCard(m));
+            
+            // Restore scroll
+            // Use requestAnimationFrame to ensure DOM is painted
+            requestAnimationFrame(() => {
+                container.scrollTop = scrollPos;
+            });
         })
-        .catch(console.error);
+        .catch(e => {
+            console.error(e);
+            const container = document.getElementById('memo-list-container');
+            // Only replace if it's still "Loading..." or empty, to avoid overwriting transient states if possible
+            if(container) {
+                container.innerHTML = `<div style="padding:20px; text-align:center; color:#ff7675; font-size:12px;">
+                    <p>CONNECTION FAILED</p>
+                    <p style="opacity:0.6; margin-top:5px;">Ensure Backend is Running</p>
+                    <div style="margin-top:10px; cursor:pointer; text-decoration:underline;" onclick="loadMemos()">RETRY</div>
+                </div>`;
+            }
+        });
 }
 
 function renderMemoCard(memo) {
@@ -778,32 +853,46 @@ function renderMemoCard(memo) {
     // Check deadline status
     let statusClass = '';
     const now = new Date();
-    if (memo.dueDate) {
+    if (memo.dueDate && !memo.done) {
         const due = new Date(memo.dueDate);
         const timeDiff = due - now;
         if (timeDiff < 0) statusClass = 'overdue';
         else if (timeDiff < 3600000) statusClass = 'urgent'; // 1 hour
     }
-
-    if (statusClass) div.classList.add(statusClass);
+    
+    if (memo.done) {
+        div.classList.add('done');
+    } else if (statusClass) {
+        div.classList.add(statusClass);
+    }
     
     // Display Only Mode (Click to Edit)
     const displayDate = memo.dueDate ? new Date(memo.dueDate).toLocaleString() : 'No Deadline';
     const hasReminder = memo.enableReminder ? '🔔 ON' : '🔕 OFF';
+    
+    const title = memo.title || '(No Title)';
+    const content = memo.content || memo.text || ''; // Fallback for old memos
 
     div.innerHTML = `
-        <div class="memo-content" onclick="openMemoEditor(${memo.id})">
-            <div class="memo-text">${memo.text || '(Empty)'}</div>
+        <div class="memo-left-check">
+             <div class="circle-check ${memo.done ? 'checked' : ''}" onclick="toggleMemoStatus(${memo.id}, event)">
+                ${memo.done ? '✓' : ''}
+             </div>
         </div>
-        
-        <div class="memo-meta">
-            <div class="ddl-chip">${displayDate}</div>
-            <div class="reminder-chip ${memo.enableReminder?'active':''}">${hasReminder}</div>
-        </div>
+        <div class="memo-main-body">
+            <div class="memo-content" onclick="openMemoEditor(${memo.id})">
+                <div class="memo-title">${title}</div>
+            </div>
+            
+            <div class="memo-meta">
+                <div class="ddl-chip">${displayDate}</div>
+                <div class="reminder-chip ${memo.enableReminder?'active':''}">${hasReminder}</div>
+            </div>
 
-        <div class="memo-toolbar">
-            <span class="memo-edit-btn" onclick="openMemoEditor(${memo.id})">EDIT</span>
-            <span class="memo-delete" onclick="requestDeleteMemo(${memo.id})">DELETE</span>
+            <div class="memo-toolbar">
+                <span class="memo-edit-btn" onclick="openMemoEditor(${memo.id})">EDIT</span>
+                <span class="memo-delete" onclick="requestDeleteMemo(${memo.id})">DELETE</span>
+            </div>
         </div>
         
         <div class="delete-overlay" id="del-overlay-${memo.id}">
@@ -814,7 +903,26 @@ function renderMemoCard(memo) {
              </div>
         </div>
     `;
-    container.prepend(div); 
+    container.appendChild(div); 
+}
+
+function toggleMemoStatus(id, event) {
+    if(event) event.stopPropagation();
+    
+    fetch('http://127.0.0.1:35678/api/memos')
+    .then(r => r.json())
+    .then(list => {
+        const item = list.find(m => m.id === id);
+        if(item) {
+            item.done = !item.done;
+            // Save back
+            fetch('http://127.0.0.1:35678/api/memos', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(item)
+            }).then(() => loadMemos()); // Reload list
+        }
+    });
 }
 
 // Open Editor via Backend Window
@@ -844,7 +952,7 @@ function addNewMemo() {
     fetch('http://127.0.0.1:35678/api/memos/open_editor', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({id: 0, text: "", dueDate: ""})
+        body: JSON.stringify({id: 0, title: "", content: "", dueDate: ""})
     });
 }
 
@@ -908,3 +1016,399 @@ setInterval(() => {
 
 // Load memos on start
 loadMemos();
+
+// ... existing mouse tracking (optional, can be removed if verified) ...
+// Global Mouse Tracking to debug scrolling
+document.addEventListener('mousemove', (e) => {
+    // Only log if debug is visible
+    // Safety check for debugEl
+    if(typeof debugEl !== 'undefined' && debugEl && debugEl.style.display !== 'none') {
+       // ... existing ...
+    }
+});
+// ...
+
+function loadConfigToUI() {
+    // ... config loading logic ...
+    // Check debug flag
+    if(currentConfig.debug) {
+        if(debugEl) debugEl.style.display = 'block';
+    } else {
+        if(debugEl) debugEl.style.display = 'none';
+    }
+}
+
+// ==========================================
+// Daily Goals Logic
+// ==========================================
+// Stored in currentConfig.dailyGoals = { date: "YYYY-MM-DD", items: [...] }
+
+function getTodayStr() {
+    return new Date().toISOString().split('T')[0];
+}
+
+function initGoals() {
+    if (!currentConfig.dailyGoals || typeof currentConfig.dailyGoals !== 'object') {
+        currentConfig.dailyGoals = { date: getTodayStr(), items: [] };
+    }
+    
+    // Check logic: Reset if new day
+    if (currentConfig.dailyGoals.date !== getTodayStr()) {
+         // Auto archive? or just wipe? Let's wipe for now.
+         currentConfig.dailyGoals = { date: getTodayStr(), items: [] };
+         saveConfigToServer();
+    }
+    
+    renderGoals();
+}
+
+function renderGoals() {
+    const list = document.getElementById('goal-list-container');
+    if (!list) return;
+    list.innerHTML = '';
+    
+    const items = currentConfig.dailyGoals.items || [];
+    let doneCount = 0;
+    
+    items.forEach((item, index) => {
+        if(item.done) doneCount++;
+        
+        const div = document.createElement('div');
+        div.className = `goal-item ${item.done ? 'done' : ''}`;
+        div.innerHTML = `
+            <div class="goal-check" onclick="toggleGoal(${index})">${item.done ? '✔' : ''}</div>
+            <div class="goal-text">${item.text}</div>
+            <div class="goal-del" onclick="deleteGoal(${index})">×</div>
+        `;
+        list.appendChild(div);
+    });
+    
+    // Update Progress
+    const percent = items.length > 0 ? Math.round((doneCount / items.length) * 100) : 0;
+    document.getElementById('goal-percent').innerText = `${percent}%`;
+    document.getElementById('goal-bar').style.width = `${percent}%`;
+}
+
+function addGoal() {
+    const input = document.getElementById('new-goal-input');
+    const text = input.value.trim();
+    if (!text) return;
+    
+    if (!currentConfig.dailyGoals) currentConfig.dailyGoals = { date: getTodayStr(), items: [] };
+    
+    currentConfig.dailyGoals.items.push({ text: text, done: false });
+    input.value = '';
+    
+    saveConfigToServer();
+    renderGoals();
+}
+
+function handleGoalInput(e) {
+    if (e.key === 'Enter') addGoal();
+}
+
+function toggleGoal(index) {
+    currentConfig.dailyGoals.items[index].done = !currentConfig.dailyGoals.items[index].done;
+    saveConfigToServer();
+    renderGoals();
+}
+
+function deleteGoal(index) {
+    currentConfig.dailyGoals.items.splice(index, 1);
+    saveConfigToServer();
+    renderGoals();
+}
+
+function switchMemoTab(tab) {
+    // UI Toggles
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelector(`.tab-btn[onclick="switchMemoTab('${tab}')"]`).classList.add('active');
+    
+    document.querySelectorAll('.memo-view').forEach(v => v.classList.remove('active'));
+    document.getElementById(`view-${tab}`).classList.add('active');
+    
+    // Handle Add Button visibility
+    const addBtn = document.getElementById('mem-add-btn');
+    if(tab === 'goals') {
+        addBtn.style.display = 'none'; // Goals has inline add
+        initGoals(); // Refresh goals on switch
+    } else {
+        addBtn.style.display = 'flex';
+    }
+}
+
+// Wrapper to save entire config because goals are part of it
+function saveConfigToServer() {
+    fetch(`${BACKEND_URL}/config`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(currentConfig)
+    });
+}
+
+
+// ==========================================
+// Pomodoro Timer Logic
+// ==========================================
+let pomoState = 'idle'; // idle, work, rest
+let pomoEndTime = 0;
+let pomoDuration = 25 * 60 * 1000; // 25 mins default
+let pomoInterval = null;
+
+const POMO_WORK_MINS = 25;
+const POMO_REST_MINS = 5;
+// SVG Circumference: 2 * PI * 48 ≈ 301.6
+const RING_CIRCUMFERENCE = 301.6;
+
+function togglePomodoro() {
+    const widget = document.querySelector('.widget-time');
+    const statusEl = document.getElementById('pomo-status');
+    
+    if (pomoState === 'idle') {
+        // Start Work
+        startPomoSession('work');
+    } else if (pomoState === 'work') {
+        // Switch to Rest manually or stop? Let's say click toggles stop.
+        // Or maybe click skips to rest? Let's implement Stop for simplicity.
+        // User asked for "Colors indicate rest/work", implies auto switching usually.
+        // Let's make click = Stop/Reset.
+        stopPomoSession();
+    } else if (pomoState === 'rest') {
+        stopPomoSession(); // Back to idle
+    }
+}
+
+function startPomoSession(mode) {
+    pomoState = mode;
+    const mins = mode === 'work' ? POMO_WORK_MINS : POMO_REST_MINS;
+    pomoDuration = mins * 60 * 1000;
+    pomoEndTime = Date.now() + pomoDuration;
+    
+    const widget = document.querySelector('.widget-time');
+    widget.classList.add('pomo-active');
+    if (mode === 'rest') widget.classList.add('rest-mode');
+    else widget.classList.remove('rest-mode');
+    
+    updatePomoVisuals();
+    
+    if (pomoInterval) clearInterval(pomoInterval);
+    pomoInterval = setInterval(updatePomoTimer, 1000);
+}
+
+function stopPomoSession() {
+    pomoState = 'idle';
+    if (pomoInterval) clearInterval(pomoInterval);
+    
+    const ring = document.getElementById('pomo-ring');
+    const widget = document.querySelector('.widget-time');
+    
+    widget.classList.remove('pomo-active');
+    ring.style.strokeDasharray = `0, ${RING_CIRCUMFERENCE}`; // Clear ring
+    
+    // updateClock() will take over text
+}
+
+function updatePomoTimer() {
+    const now = Date.now();
+    const diff = pomoEndTime - now;
+    
+    if (diff <= 0) {
+        // Timer Finished
+        audioBeep(); // Simple notification
+        if (pomoState === 'work') {
+            startPomoSession('rest'); // Auto chain
+        } else {
+            stopPomoSession(); // End cycle
+        }
+        return;
+    }
+    
+    // Update Text
+    const mins = Math.floor(diff / 60000);
+    const secs = Math.floor((diff % 60000) / 1000);
+    const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+    
+    document.getElementById('pomo-status').innerText = `${pomoState.toUpperCase()} ${timeStr}`;
+    
+    // Update Ring
+    updatePomoVisuals(diff);
+}
+
+function updatePomoVisuals(remaining = pomoDuration) {
+    const ring = document.getElementById('pomo-ring');
+    const progress = remaining / pomoDuration; // 1.0 -> 0.0
+    
+    // We want ring to shrink: dashoffset or dasharray
+    // stroke-dasharray: length, gap
+    // length = circumference * progress
+    const length = RING_CIRCUMFERENCE * progress;
+    ring.style.strokeDasharray = `${length}, ${RING_CIRCUMFERENCE}`;
+}
+
+function audioBeep() {
+    // Can play simple sound context or rely on system
+    // For WP Engine, visual is key.
+}
+
+// Hook into config loading to init goals
+const originalLoadConfig = typeof window.loadConfigToUI !== 'undefined' ? window.loadConfigToUI : null;
+// We actually need to find where `currentConfig` is populated.
+// It's in `loadConfigToUI` inside toggleSettingsModal usually?
+// Ah, `fetch(BACKEND/config)` calls renderSettingsList.
+// Let's inject into the fetch flow.
+// Actually, `loadMemos` is separate. `initGoals` relies on `currentConfig`.
+// We need to fetch config ONCE globally on start if not already done.
+
+// Modify the start sequence
+// ...
+
+
+document.addEventListener('click', (e) => {
+    logDebug(`CLICK: ${e.target.tagName} .${e.target.className}`);
+});
+
+const memoContainer = document.getElementById('memo-list-container');
+
+// --- DRAG TO SCROLL (Robust V3 - Window Binding) ---
+function initDragScroll() {
+    const container = document.getElementById('memo-list-container');
+    if (!container) return;
+
+    let isDown = false;
+    let startY;
+    let startScrollTop;
+    let isDragging = false; 
+
+    const onMouseDown = (e) => {
+        isDown = true;
+        isDragging = false;
+        container.classList.add('grabbing');
+        
+        // CRITICAL: Disable smooth scrolling during drag to ensure 1:1 instant movement
+        container.style.scrollBehavior = 'auto';
+        
+        // Record initial state
+        startY = e.pageY;
+        startScrollTop = container.scrollTop;
+        
+        // Bind global listeners to capture fast movements outside container
+        window.addEventListener('mousemove', onMouseMove);
+        window.addEventListener('mouseup', onMouseUp);
+        
+        logDebug("DRAG START");
+    };
+
+    const onMouseMove = (e) => {
+        if (!isDown) return;
+        
+        e.preventDefault(); // Stop selection/native drag
+        
+        const y = e.pageY;
+        const walk = (y - startY); 
+        
+        // Threshold to treat as drag (prevent jitter on simple clicks)
+        if(Math.abs(walk) > 3) {
+            isDragging = true;
+            // Disable pointer events on children during drag to improve performance
+            container.style.pointerEvents = 'none'; 
+        }
+
+        // Direct 1:1 mapping: Move mouse down (positive walk) -> Scroll up (decrease scrollTop)
+        // No easing, no animation, raw position update
+        container.scrollTop = startScrollTop - walk;
+        
+        // logDebug(`DRAG: ${Math.round(walk)}`);
+    };
+
+    const onMouseUp = (e) => {
+        isDown = false;
+        container.classList.remove('grabbing');
+        container.style.pointerEvents = 'auto'; // Re-enable children
+        
+        // Restore smooth scrolling if you want it for other interactions (optional)
+        container.style.scrollBehavior = 'smooth';
+        
+        window.removeEventListener('mousemove', onMouseMove);
+        window.removeEventListener('mouseup', onMouseUp);
+        
+        if(isDragging) {
+            logDebug("DRAG END");
+            // Delay resetting isDragging slightly to block the subsequent 'click' event
+            setTimeout(() => { isDragging = false; }, 50);
+        } else {
+            isDragging = false;
+        }
+    };
+
+    // Attach Start Handler
+    container.addEventListener('mousedown', onMouseDown);
+    
+    // Capture Click to prevent triggering items after drag
+    // We use capture phase to intercept before child elements
+    container.addEventListener('click', (e) => {
+        if(isDragging) {
+            e.preventDefault();
+            e.stopPropagation();
+            logDebug("CLICK BLOCKED (Drag)");
+        }
+    }, true);
+}
+
+// Ensure CSS support
+const style = document.createElement('style');
+style.innerHTML = `
+    .grabbing { cursor: grabbing !important; }
+    #memo-list-container { cursor: grab; }
+`;
+document.head.appendChild(style);
+
+// Call init
+setTimeout(initDragScroll, 500); // Wait for DOM
+
+// --- FORCE SCROLL FIX (Ultimate Solution V2) ---
+// Use Capture Phase (true) to intercept events BEFORE they reach the element.
+// Listen to multiple event types for compatibility.
+['wheel', 'mousewheel', 'DOMMouseScroll'].forEach(eventType => {
+    window.addEventListener(eventType, (e) => {
+        // Log raw event to confirm we receive ANYTHING
+        // logDebug(`RAW EVENT: ${e.type}`);
+
+        const target = e.target;
+        // Check if we are inside the memo list
+        const listContainer = target.closest('#memo-list-container');
+        
+        if (listContainer) {
+            // Calculate Delta
+            let delta = 0;
+            if (e.deltaY) delta = e.deltaY;
+            else if (e.detail) delta = e.detail * 40; // FF
+            else if (e.wheelDelta) delta = -e.wheelDelta / 2; // IE/Chrome old
+
+            logDebug(`SCROLL CAPTURE: ${delta} on ${target.tagName}`);
+
+            const before = listContainer.scrollTop;
+            listContainer.scrollTop += delta;
+            
+            // Prevent default browser scrolling (which might be failing anyway)
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, { capture: true, passive: false });
+});
+
+if(memoContainer) {
+    // Keep existing listener just in case, but the global one above should handle it.
+    memoContainer.addEventListener('wheel', (e) => {
+         // This might not fire, which is why we added the window listener.
+         e.stopPropagation(); 
+    }, {passive: false});
+    
+    // Check scroll geometry periodically
+    setInterval(() => {
+        if(memoContainer) {
+             // logDebug(`GEO: SH=${memoContainer.scrollHeight} CH=${memoContainer.clientHeight}`);
+        }
+    }, 5000);
+} else {
+    logDebug("ERROR: Memo container not found on init");
+}

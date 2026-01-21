@@ -22,6 +22,31 @@
         }
     ],
     "autoStart": true,
-    "memos": [],
+    "memos": [
+        {
+            "id": 1768923736318,
+            "text": "目标小助手\n",
+            "dueDate": null,
+            "enableReminder": false
+        },
+        {
+            "id": 1768923747072,
+            "text": "优化DDL工具",
+            "dueDate": null,
+            "enableReminder": false
+        },
+        {
+            "id": 1768923774023,
+            "text": "番茄钟",
+            "dueDate": null,
+            "enableReminder": false
+        },
+        {
+            "id": 1768923789207,
+            "text": "可增减背单词卡片组件",
+            "dueDate": null,
+            "enableReminder": false
+        }
+    ],
     "musicPath": "D:/CloudMusic/cloudmusic.exe"
 }

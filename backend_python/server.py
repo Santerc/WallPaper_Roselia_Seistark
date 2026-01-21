@@ -35,8 +35,10 @@ CONFIG_FILE = os.path.join(WORKING_DIR, 'user_config.json')
 DEFAULT_CONFIG = {
     "apps": [], 
     "memos": [], # Stores {id, text, due_date, done}
+    "dailyGoals": {"date": "", "items": []}, # New Daily Goals
     "musicPath": "",
-    "autoStart": False
+    "autoStart": False,
+    "debug": False # Debug toggle
 }
 
 app = Flask(__name__)
@@ -330,8 +332,8 @@ def reminder_worker():
             now = datetime.now()
             
             for m in memos:
-                # Check conditions: Has Date, Reminder Enabled, Not already shown
-                if m.get("dueDate") and m.get("enableReminder") and not m.get("reminderShown", False):
+                # Check conditions: Has Date, Reminder Enabled, Not already shown, AND Not Done
+                if m.get("dueDate") and m.get("enableReminder") and not m.get("reminderShown", False) and not m.get("done", False):
                     try:
                         # Parse "2026-01-20T16:45"
                         # The input type="datetime-local" format is ISO like without Z
@@ -341,8 +343,10 @@ def reminder_worker():
                         # Trigger if NOW >= DDL
                         if now >= ddl_dt:
                             # Show Alert
-                            text_content = m.get("text", "No Content")
-                            ctypes.windll.user32.MessageBoxW(0, f"Memo Reminder:\n\n{text_content}", "Wallpaper Engine Memo", 0x40 | 0x1)
+                            title = m.get("title", "Memo Reminder")
+                            content = m.get("content", m.get("text", "No Content"))
+                            text_content = f"{title}\n\n{content}"
+                            ctypes.windll.user32.MessageBoxW(0, text_content, "Wallpaper Engine Memo", 0x40 | 0x1)
                             
                             # Mark as shown
                             m['reminderShown'] = True

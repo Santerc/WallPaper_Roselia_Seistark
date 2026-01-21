@@ -16,12 +16,70 @@
             "path": "D:/MatLab2024b/Application/bin/matlab.exe"
         },
         {
+            "icon": "E:/Adobe Audition 2022/Adobe Audition 2022/resources/content/images/appIcon.png",
             "name": "Adobe Audition",
-            "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe",
-            "icon": "E:/Adobe Audition 2022/Adobe Audition 2022/resources/content/images/appIcon.png"
+            "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe"
+        },
+        {
+            "name": "哔哩哔哩",
+            "path": "D:/bilibili/哔哩哔哩.exe",
+            "icon": "D:/bilibili/uninstallerIcon.ico"
         }
     ],
     "autoStart": false,
+    "memos": [
+        {
+            "content": "555555\n555555\n\n\n55555\n\n55\n55",
+            "dueDate": null,
+            "enableReminder": false,
+            "id": 1768982081030,
+            "text": "555555\n555555\n\n\n55555\n\n55\n55",
+            "title": "222"
+        },
+        {
+            "content": "bbb",
+            "dueDate": null,
+            "enableReminder": false,
+            "id": 1768982144986,
+            "text": "bbb",
+            "title": "qqq"
+        },
+        {
+            "content": "aadfc",
+            "dueDate": null,
+            "enableReminder": false,
+            "id": 1768982154299,
+            "text": "aadfc",
+            "title": "ccc"
+        },
+        {
+            "content": "edvevber",
+            "dueDate": null,
+            "enableReminder": false,
+            "id": 1768982162575,
+            "text": "edvevber",
+            "title": "defew"
+        },
+        {
+            "content": "222",
+            "dueDate": null,
+            "enableReminder": false,
+            "id": 1768984471211,
+            "text": "222",
+            "title": "aaa"
+        },
+        {
+            "content": "222",
+            "dueDate": null,
+            "enableReminder": false,
+            "id": 1768984524324,
+            "text": "222",
+            "title": "111"
+        }
+    ],
     "musicPath": "D:/CloudMusic/cloudmusic.exe",
-    "memos": []
+    "dailyGoals": {
+        "date": "2026-01-21",
+        "items": []
+    }
 }

@@ -42,18 +42,56 @@
         </div>
         <div class="memo-glass">
             <div class="memo-header">
-                <h3>MEMOS</h3>
-                <button class="add-memo-btn" onclick="addNewMemo()">+</button>
+                <div class="tab-container">
+                    <span class="tab-btn active" onclick="switchMemoTab('memos')">MEMOS</span>
+                    <span class="tab-sep">/</span>
+                    <span class="tab-btn" onclick="switchMemoTab('goals')">DAILY GOALS</span>
+                </div>
+                <button class="add-memo-btn" id="mem-add-btn" onclick="addNewMemo()">+</button>
             </div>
-            <div class="memo-list" id="memo-list-container">
-                <!-- Generated Items -->
+            
+            <!-- View: MEMOS -->
+            <div class="memo-view active" id="view-memos">
+                <div class="memo-list" id="memo-list-container">
+                    <div style="padding:20px; text-align:center; color:#888;">Loading...</div>
+                </div>
+            </div>
+            
+            <!-- View: GOALS -->
+            <div class="memo-view" id="view-goals">
+                 <div class="goal-header">
+                     <div class="progress-container">
+                         <div class="progress-text">
+                             <span>TARGET PROGRESS</span>
+                             <span id="goal-percent">0%</span>
+                         </div>
+                         <div class="progress-bar-bg">
+                             <div class="progress-bar-fill" id="goal-bar"></div>
+                         </div>
+                     </div>
+                     <div class="goal-input-row">
+                         <input type="text" id="new-goal-input" placeholder="Add a new goal..." onkeypress="handleGoalInput(event)">
+                         <button onclick="addGoal()">ADD</button>
+                     </div>
+                 </div>
+                 <div class="goal-list" id="goal-list-container">
+                     <!-- Generated Goals -->
+                 </div>
             </div>
         </div>
     </div>
 
-    <div class="widget-time">
-        <h1 id="clock">00:00</h1>
-        <p id="date">LOADING...</p>
+    <div class="widget-time" onclick="togglePomodoro()">
+        <!-- Pomodoro Ring Overlay -->
+        <svg class="pomo-svg" viewBox="0 0 100 100">
+             <circle class="pomo-bg" cx="50" cy="50" r="48"></circle>
+             <circle class="pomo-ring" id="pomo-ring" cx="50" cy="50" r="48" stroke-dasharray="0, 301.6"></circle>
+        </svg>
+        <div class="time-content">
+            <h1 id="clock">00:00</h1>
+            <p id="date">LOADING...</p>
+            <div id="pomo-status" class="pomo-status">WORK 25:00</div>
+        </div>
     </div>
 
     <div class="liquid-container">
@@ -169,20 +207,54 @@
             </div>
         </div>
     </div>
+    
+    <!-- DEBUG OVERLAY -->
+    <div id="debug-console" style="
+        position: fixed; 
+        top: 10px; 
+        left: 10px; 
+        width: 300px; 
+        height: 400px; 
+        background: rgba(0,0,0,0.8); 
+        color: #0f0; 
+        font-family: monospace; 
+        font-size: 11px; 
+        z-index: 9999; 
+        pointer-events: none; 
+        overflow: hidden;
+        padding: 10px;
+        border: 1px solid #0f0;
+        white-space: pre-wrap;
+        display: none; /* Hidden by default */
+    ">DEBUG STARTED...</div>
 
     <!-- Ensure script is the absolute last thing -->
-    <script src="scripts.js"></script>
+    <script>
+        window.onerror = function(msg, url, line, col, error) {
+            // Visualize JS errors on screen
+            var consoleDiv = document.createElement('div');
+            consoleDiv.style.position = 'fixed';
+            consoleDiv.style.bottom = '0';
+            consoleDiv.style.left = '0';
+            consoleDiv.style.background = 'rgba(0,0,0,0.8)';
+            consoleDiv.style.color = 'red';
+            consoleDiv.style.padding = '10px';
+            consoleDiv.style.zIndex = '9999';
+            consoleDiv.style.fontSize = '12px';
+            consoleDiv.innerText = "JS Error: " + msg + " at line " + line;
+            document.body.appendChild(consoleDiv);
+            return false;
+        };
+    </script>
+    <script src="scripts.js?v=20260121_6"></script>
     <script>
         // Inline fail-safe check
         window.addEventListener('load', function() {
            setTimeout(function() {
-               const debug = document.getElementById('audio-debug');
-               if(debug && debug.innerText.includes("Waiting")) {
-                   console.warn("Audio Context Timed Out - Forcing Demo?");
-                   // Optional: enable demo fallback if user wants?
-                   // Currently just warns
-               }
-           }, 3000);
+               // Fallback Init
+               if(typeof loadMemos === 'function') loadMemos();
+               if(typeof renderDock === 'function') renderDock();
+           }, 1500);
         });
     </script>
 </body>

@@ -322,11 +322,18 @@ class MemoWindow(QWidget):
         content_container.setSpacing(15)
         self.frame_layout.addLayout(content_container)
 
+        # -- Title Input --
+        content_container.addWidget(QLabel("TITLE"))
+        self.title_edit = QLineEdit()
+        self.title_edit.setText(self.memo_data.get('title', ''))
+        self.title_edit.setPlaceholderText("Enter title...")
+        content_container.addWidget(self.title_edit)
+
         # -- Text Area --
-        content_container.addWidget(QLabel("MEMO CONTENT"))
+        content_container.addWidget(QLabel("CONTENT"))
         self.text_edit = QTextEdit()
-        self.text_edit.setPlainText(self.memo_data.get('text', ''))
-        self.text_edit.setPlaceholderText("Write something here...")
+        self.text_edit.setPlainText(self.memo_data.get('content', self.memo_data.get('text', '')))
+        self.text_edit.setPlaceholderText("Write details here...")
         content_container.addWidget(self.text_edit)
 
         # -- Deadline Section --
@@ -447,7 +454,8 @@ class MemoWindow(QWidget):
 
     def save(self):
         # 1. Gather Data
-        text = self.text_edit.toPlainText()
+        title = self.title_edit.text()
+        content = self.text_edit.toPlainText()
         date_str = None
         
         if self.enable_date_chk.isChecked():
@@ -459,9 +467,13 @@ class MemoWindow(QWidget):
             
         reminder = self.reminder_check.isChecked()
 
+        # Fallback for legacy 'text' field support if any system relies on it,
+        # but 'content' is the new standard.
         payload = {
             "id": self.memo_id if self.memo_id else None,
-            "text": text,
+            "title": title,
+            "content": content,
+            "text": content, # Legacy support
             "dueDate": date_str,
             "enableReminder": reminder
         }
