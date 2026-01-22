@@ -269,14 +269,14 @@
             return false;
         };
     </script>
-    <script src="scripts.js?v=20260121_6"></script>
+    <script type="module" src="scripts/main.js"></script>
     <script>
         // Inline fail-safe check
         window.addEventListener('load', function() {
            setTimeout(function() {
                // Fallback Init
-               if(typeof loadMemos === 'function') loadMemos();
-               if(typeof renderDock === 'function') renderDock();
+               if(typeof window.loadMemos === 'function') window.loadMemos();
+               if(typeof window.renderDock === 'function') window.renderDock();
            }, 1500);
         });
     </script>

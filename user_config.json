@@ -19,6 +19,11 @@
             "icon": "E:/Adobe Audition 2022/Adobe Audition 2022/resources/content/images/appIcon.png",
             "name": "Adobe Audition",
             "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe"
+        },
+        {
+            "name": "哔哩哔哩",
+            "path": "D:/bilibili/哔哩哔哩.exe",
+            "icon": "D:/bilibili/uninstallerIcon.ico"
         }
     ],
     "autoStart": true,
@@ -26,7 +31,7 @@
         "date": "2026-01-22",
         "items": [
             {
-                "done": false,
+                "done": true,
                 "text": "模电完成MOS管"
             },
             {
