@@ -32,8 +32,8 @@
     bottom: -40px;
     left: 50%;
     transform: translateX(-50%);
-    width: 32px;
-    height: 32px;
+    width: 64px;
+    height: 64px;
     cursor: pointer;
     opacity: 0;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -58,8 +58,8 @@
     box-shadow: 0 0 15px rgba(162, 155, 254, 0.4);
 }
 .pomo-settings-btn img {
-    width: 20px;
-    height: 20px;
+    width: 64px;
+    height: 64px;
     object-fit: contain;
     filter: drop-shadow(0 0 2px rgba(255,255,255,0.5));
 }
