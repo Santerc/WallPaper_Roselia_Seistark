@@ -21,31 +21,31 @@
             "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe"
         }
     ],
-    "autoStart": true,
+    "autoStart": false,
     "memos": [
         {
+            "dueDate": null,
+            "enableReminder": false,
             "id": 1768923736318,
-            "text": "目标小助手\n",
-            "dueDate": null,
-            "enableReminder": false
+            "text": "目标小助手\n"
         },
         {
+            "dueDate": null,
+            "enableReminder": false,
             "id": 1768923747072,
-            "text": "优化DDL工具",
-            "dueDate": null,
-            "enableReminder": false
+            "text": "优化DDL工具"
         },
         {
+            "dueDate": null,
+            "enableReminder": false,
             "id": 1768923774023,
-            "text": "番茄钟",
-            "dueDate": null,
-            "enableReminder": false
+            "text": "番茄钟"
         },
         {
-            "id": 1768923789207,
-            "text": "可增减背单词卡片组件",
             "dueDate": null,
-            "enableReminder": false
+            "enableReminder": false,
+            "id": 1768923789207,
+            "text": "可增减背单词卡片组件"
         }
     ],
     "musicPath": "D:/CloudMusic/cloudmusic.exe"

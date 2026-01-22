@@ -23,23 +23,27 @@
     ],
     "autoStart": true,
     "dailyGoals": {
-        "date": "2026-01-21",
+        "date": "2026-01-22",
         "items": [
             {
-                "done": true,
-                "text": "航概100题整理"
+                "done": false,
+                "text": "模电完成MOS管"
             },
             {
                 "done": false,
-                "text": "日语学习"
+                "text": "日语完成5单元复习并背诵单词"
             },
             {
-                "done": true,
-                "text": "模电复习"
+                "done": false,
+                "text": "航概1000题（到400）"
             },
             {
-                "done": true,
-                "text": "壁纸滚动条修复，完成日课开发"
+                "done": false,
+                "text": "壁纸番茄钟部分"
+            },
+            {
+                "done": false,
+                "text": "微机原理复习"
             }
         ]
     },
