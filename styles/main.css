@@ -1,0 +1,16 @@
+/* ================= 主样式入口 ================= */
+/* 基础 */
+@import url('base/reset.css');
+@import url('base/common.css');
+
+/* 布局 */
+@import url('layout.css');
+
+/* 模块 */
+@import url('modules/stats.css');
+@import url('modules/memos.css');
+@import url('modules/goals.css');
+@import url('modules/pomodoro.css');
+@import url('modules/dock.css');
+@import url('modules/music.css');
+@import url('modules/settings.css');

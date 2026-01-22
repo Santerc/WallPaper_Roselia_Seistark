@@ -1,0 +1,18 @@
+/* ================= 全局设置 & 重置 ================= */
+* { box-sizing: border-box; }
+
+body, html {
+    margin: 0; padding: 0;
+    width: 100%; height: 100%;
+    overflow: hidden;
+    background-color: #000;
+    font-family: 'Segoe UI', sans-serif;
+    user-select: none; /* 禁止选中文本 */
+}
+
+/* Allow interaction with inputs */
+input, textarea, button {
+    user-select: text;
+    -webkit-user-select: text;
+    pointer-events: auto;
+}

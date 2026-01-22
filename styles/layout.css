@@ -1,0 +1,16 @@
+/* ================= 背景布局 ================= */
+#bg-layer {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 0; 
+    background-image: url('../assets/background.png'); /* 注意路径层级调整 */
+    background-size: cover;
+    background-position: center;
+}
+
+#sakura-canvas {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1;
+    pointer-events: none;
+}

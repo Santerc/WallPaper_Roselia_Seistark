@@ -1,0 +1,114 @@
+/* ================= 每日目标 ================= */
+.goal-btn .bottle-svg {
+    width: 32px; height: 32px;
+    stroke: rgba(255,255,255,0.8);
+    fill: rgba(0,0,0,0.2);
+}
+.liquid-bottle {
+    position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+    z-index: 1; pointer-events: none;
+    display: flex; align-items: flex-end;
+}
+.liquid-fill {
+    width: 100%; height: 0%; 
+    background: linear-gradient(0deg, #6c5ce7 0%, #a29bfe 100%);
+    opacity: 0.6;
+    transition: height 0.5s ease-out;
+    filter: drop-shadow(0 0 5px #6c5ce7);
+}
+.liquid-fill::before {
+    content: ''; position: absolute; top: -5px; left: 0; width: 100%; height: 10px;
+    background: rgba(162, 155, 254, 0.4);
+    border-radius: 50%; transform: scaleY(0.5);
+}
+
+.goal-header {
+    padding: 20px 25px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    display: flex; flex-direction: column; align-items: center;
+}
+
+.progress-details {
+    width: 100%; display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+
+#goal-percent-big {
+    font-size: 36px; font-weight: 800; color: #fff;
+    text-shadow: 0 0 20px rgba(162, 155, 254, 0.6);
+    line-height: 1;
+}
+
+.progress-label {
+    font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.4); 
+    font-weight: 600; margin-top: 5px;
+}
+
+.progress-glow-bar {
+    width: 100%; height: 8px; 
+    background: rgba(0,0,0,0.3); border-radius: 4px;
+    margin: 5px 0; overflow: hidden; position: relative;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.5);
+}
+
+.glow-fill {
+    height: 100%; width: 0%;
+    background: linear-gradient(90deg, #6c5ce7, #a29bfe, #00cec9);
+    background-size: 200% 100%;
+    animation: gradientFlow 3s linear infinite;
+    box-shadow: 0 0 15px rgba(162, 155, 254, 0.5);
+    border-radius: 4px;
+    transition: width 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+@keyframes gradientFlow {
+    0% { background-position: 100% 0; }
+    100% { background-position: -100% 0; }
+}
+
+.manage-goals-btn {
+    background: rgba(162, 155, 254, 0.15);
+    border: 1px solid rgba(162, 155, 254, 0.4);
+    color: #a29bfe;
+    padding: 8px 30px; border-radius: 20px;
+    font-size: 12px; font-weight: 700; letter-spacing: 1px;
+    cursor: pointer; transition: all 0.3s;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.manage-goals-btn:hover {
+    background: #a29bfe; color: black;
+    box-shadow: 0 0 20px rgba(162, 155, 254, 0.6);
+    transform: scale(1.05);
+}
+
+.goal-list {
+    flex: 1; overflow-y: auto; padding: 20px 25px;
+    display: flex; flex-direction: column; gap: 10px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,0.4) rgba(0,0,0,0.1);
+    pointer-events: auto;
+}
+
+.goal-item {
+    display: flex; align-items: center; gap: 20px; 
+    padding: 20px;
+    border-radius: 12px;
+    background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05);
+    transition: all 0.2s;
+}
+.goal-item:hover { background: rgba(255,255,255,0.08); }
+.goal-item.done { opacity: 0.6; }
+.goal-text { flex: 1; font-size: 24px; color: #eee; line-height: 1.5; }
+.goal-item.done .goal-text { text-decoration: line-through; color: #aaa; }
+
+.goal-check {
+    width: 32px; height: 32px; border: 3px solid rgba(255,255,255,0.5); border-radius: 8px;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    font-size: 20px; color: transparent;
+}
+.goal-item.done .goal-check {
+    background: #00cec9; border-color: #00cec9; color: #000;
+    box-shadow: 0 0 8px #00cec9;
+}
+.goal-del {
+    color: rgba(255,255,255,0.2); cursor: pointer; font-size: 16px;
+    transition: color 0.2s;
+}
+.goal-del:hover { color: #ff7675; }
