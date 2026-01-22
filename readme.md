@@ -2,7 +2,7 @@
 
 这是一个为 Wallpaper Engine 设计的高级交互式 Web 壁纸，拥有极具质感的“玻璃拟态 (Glassmorphism)”风格，并集成了强大的 Python 后端，可实现系统控制、备忘录管理和应用程序快速启动等功能。
 
-![预览](preview.png)
+![预览](picture/preview.png)
 
 ## ✨ 主要功能
 

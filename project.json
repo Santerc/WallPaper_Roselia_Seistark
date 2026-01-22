@@ -3,7 +3,7 @@
   "file": "index.html",
   "description": "Roselia SeiStark 壁纸及桌面组件",
   "type": "web",
-  "preview": "preview.png",
+  "preview": "picture/preview.png",
   "general": {
     "supportsaudioprocessing": true,
     "properties": {

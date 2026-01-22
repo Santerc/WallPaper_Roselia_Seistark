@@ -22,6 +22,7 @@ from PyQt6.QtWidgets import QApplication, QFileDialog
 from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from memo_gui import MemoWindow
 from goals_gui import GoalsWindow
+from pomo_gui import PomodoroSettingsWindow
 
 # ================= Configuration =================
 PORT = 35678
@@ -52,13 +53,15 @@ class GuiManager(QObject):
     open_editor_signal = pyqtSignal(dict)
     pick_file_signal = pyqtSignal()
     open_goals_signal = pyqtSignal(list)
+    open_pomodoro_signal = pyqtSignal(dict)
 
     def __init__(self):
         super().__init__()
         self.active_window = None
         self.goals_window = None
-        # State tracking: keys 'memo', 'goals' -> value: boolean (is_open)
-        self.status = {'memo': False, 'goals': False}
+        self.pomodoro_window = None
+        # State tracking: keys 'memo', 'goals', 'pomodoro' -> value: boolean (is_open)
+        self.status = {'memo': False, 'goals': False, 'pomodoro': False}
         self.file_picker_result = None
         self.file_picker_event = threading.Event()
         
@@ -66,6 +69,7 @@ class GuiManager(QObject):
         self.open_editor_signal.connect(self.show_editor_slot)
         self.pick_file_signal.connect(self.show_file_picker_slot)
         self.open_goals_signal.connect(self.show_goals_editor_slot)
+        self.open_pomodoro_signal.connect(self.show_pomodoro_slot)
 
     @pyqtSlot(dict)
     def show_editor_slot(self, data):
@@ -124,6 +128,30 @@ class GuiManager(QObject):
         self.goals_window.activateWindow()
         self.goals_window.raise_()
 
+    @pyqtSlot(dict)
+    def show_pomodoro_slot(self, config_data):
+        self.status['pomodoro'] = True
+        
+        def on_save(new_config):
+            self.update_pomodoro_internal(new_config)
+
+        if self.pomodoro_window:
+            self.pomodoro_window.close()
+            
+        self.pomodoro_window = PomodoroSettingsWindow(config_data, on_save)
+        
+        # Monkey patch close event
+        original_close = self.pomodoro_window.closeEvent
+        def wrapped_close(event):
+            self.status['pomodoro'] = False
+            if original_close: original_close(event)
+            else: event.accept()
+        self.pomodoro_window.closeEvent = wrapped_close
+        
+        self.pomodoro_window.show()
+        self.pomodoro_window.activateWindow()
+        self.pomodoro_window.raise_()
+
     @pyqtSlot()
     def show_file_picker_slot(self):
         filename, _ = QFileDialog.getOpenFileName(None, "Select File", "", "All Files (*)")
@@ -174,6 +202,12 @@ class GuiManager(QObject):
         print(f"DEBUG: Saving {len(items)} items to config.")
         config["dailyGoals"]["items"] = items
         save_config(config)
+
+    def update_pomodoro_internal(self, new_config):
+        config = load_config()
+        config["pomodoroConfig"] = new_config
+        save_config(config)
+        print("Pomodoro settings saved")
 
 
 # Global instance
@@ -450,6 +484,23 @@ def open_goals_editor():
         items = config.get("dailyGoals", {}).get("items", [])
         
         gui_manager.open_goals_signal.emit(items)
+        return jsonify({"success": True})
+    else:
+        return jsonify({"error": "GUI Manager not active"}), 500
+
+@app.route('/api/pomodoro/open_editor', methods=['POST'])
+def open_pomodoro_editor():
+    global gui_manager
+    if gui_manager:
+        config = load_config()
+        # Default config if missing
+        pomo_config = config.get("pomodoroConfig", {
+            "work": 25, 
+            "rest": 5, 
+            "presets": []
+        })
+        
+        gui_manager.open_pomodoro_signal.emit(pomo_config)
         return jsonify({"success": True})
     else:
         return jsonify({"error": "GUI Manager not active"}), 500

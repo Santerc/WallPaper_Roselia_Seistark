@@ -12,7 +12,7 @@ export function renderSettingsList() {
         const div = document.createElement('div');
         div.className = 'app-list-item';
         
-        const iconSrc = app.icon ? formatLocalUrl(app.icon) : 'roselia.png';
+        const iconSrc = app.icon ? formatLocalUrl(app.icon) : '../assets/roselia.png';
         
         div.innerHTML = `
             <div class="app-info">

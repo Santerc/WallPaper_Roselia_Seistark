@@ -9,7 +9,7 @@ import { initAudio } from './audio.js';
 import { initStats } from './stats.js';
 import { initMemos, addNewMemo as addNewMemoAction, openMemoEditor, toggleMemoStatus, requestDeleteMemo, cancelDeleteMemo, confirmDeleteMemo, loadMemos } from './memos.js';
 import { initGoals, addGoal, toggleGoal, deleteGoal } from './goals.js';
-import { togglePomodoro } from './pomodoro.js';
+import { togglePomodoro, initPomodoro } from './pomodoro.js';
 import { initScrollFix } from './scroll_fix.js';
 
 // ==========================================
@@ -198,6 +198,7 @@ document.addEventListener('DOMContentLoaded', () => {
     initAudio();
     initStats();
     initScrollFix();
+    initPomodoro();
     loadConfigToUI();
     
     // 状态检查

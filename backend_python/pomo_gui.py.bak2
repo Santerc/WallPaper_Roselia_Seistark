@@ -1,0 +1,350 @@
+from PyQt6.QtWidgets import (QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
+                             QPushButton, QListWidget, QListWidgetItem, 
+                             QSpinBox, QFrame, QGraphicsDropShadowEffect, QInputDialog, QLineEdit)
+from PyQt6.QtCore import Qt, QPoint, QRect
+from PyQt6.QtGui import QColor, QPainter, QBrush, QLinearGradient, QPen
+
+class RoseliaSpinBox(QSpinBox):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setButtonSymbols(QSpinBox.ButtonSymbols.NoButtons)
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setStyleSheet("""
+            QSpinBox {
+                background-color: rgba(30, 20, 40, 0.6);
+                border: 1px solid rgba(162, 155, 254, 0.3);
+                border-radius: 8px;
+                color: #ecf0f1;
+                font-family: 'Segoe UI', sans-serif;
+                font-size: 24px;
+                font-weight: 300;
+                padding: 10px;
+                selection-background-color: #6c5ce7;
+            }
+            QSpinBox:hover {
+                border: 1px solid rgba(162, 155, 254, 0.8);
+                background-color: rgba(30, 20, 40, 0.8);
+            }
+            QSpinBox:focus {
+                border: 1px solid #a29bfe;
+                background-color: rgba(30, 20, 40, 1.0);
+            }
+        """)
+
+class PomodoroSettingsWindow(QWidget):
+    def __init__(self, current_config, on_save_callback):
+        super().__init__()
+        self.setObjectName("MainWindow")
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint | Qt.WindowType.WindowStaysOnTopHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.setGeometry(0, 0, 380, 520)
+        self.center_window()
+        
+        self.config = current_config 
+        self.on_save = on_save_callback
+        self.drag_pos = None
+
+        # Main Layout container with margins for shadow
+        main_layout = QVBoxLayout()
+        main_layout.setContentsMargins(10, 10, 10, 10)
+        self.setLayout(main_layout)
+
+        # Background Frame
+        self.bg_frame = QFrame()
+        self.bg_frame.setObjectName("BgFrame")
+        self.bg_frame.setStyleSheet("""
+            QFrame#BgFrame {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:1, 
+                                          stop:0 #1a0f2e, stop:0.4 #2d1b4e, stop:1 #1a0f2e);
+                border: 1px solid rgba(162, 155, 254, 0.4);
+                border-radius: 12px;
+            }
+        """)
+        
+        # Shadow Effect
+        shadow = QGraphicsDropShadowEffect(self)
+        shadow.setBlurRadius(20)
+        shadow.setColor(QColor(0, 0, 0, 150))
+        shadow.setOffset(0, 5)
+        self.bg_frame.setGraphicsEffect(shadow)
+        
+        main_layout.addWidget(self.bg_frame)
+        
+        # Content Layout inside Frame
+        content_layout = QVBoxLayout(self.bg_frame)
+        content_layout.setContentsMargins(20, 15, 20, 20)
+        content_layout.setSpacing(15)
+
+        # --- Header ---
+        header_layout = QHBoxLayout()
+        
+        title_lbl = QLabel("SETTING")
+        title_lbl.setStyleSheet("""
+            color: #a29bfe; 
+            font-size: 14px; 
+            font-weight: bold; 
+            letter-spacing: 4px;
+            font-family: 'Segoe UI', sans-serif;
+        """)
+        header_layout.addWidget(title_lbl)
+        header_layout.addStretch()
+        
+        # Close Button
+        btn_close = QPushButton("×")
+        btn_close.setFixedSize(28, 28)
+        btn_close.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_close.clicked.connect(self.close)
+        btn_close.setStyleSheet("""
+            QPushButton {
+                background: transparent;
+                color: rgba(255,255,255,0.6);
+                border: none;
+                font-size: 20px;
+                font-weight: 300;
+            }
+            QPushButton:hover {
+                color: #ff7675;
+                background: rgba(255, 118, 117, 0.1);
+                border-radius: 14px;
+            }
+        """)
+        header_layout.addWidget(btn_close)
+        content_layout.addLayout(header_layout)
+
+        # --- Time Controls ---
+        # Group similar to the visual style of mobile pickers
+        time_container = QFrame()
+        time_container.setStyleSheet("""
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        """)
+        time_layout = QHBoxLayout(time_container)
+        time_layout.setContentsMargins(15, 15, 15, 15)
+
+        # Work
+        work_layout = QVBoxLayout()
+        lbl_work = QLabel("WORK")
+        lbl_work.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_work.setStyleSheet("color: rgba(255,255,255,0.5); font-size: 10px; font-weight: bold; letter-spacing: 1px;")
+        self.spin_work = RoseliaSpinBox()
+        self.spin_work.setRange(1, 120)
+        self.spin_work.setValue(self.config.get('work', 25))
+        work_layout.addWidget(self.spin_work)
+        work_layout.addWidget(lbl_work)
+        
+        # Divider
+        divider = QLabel(":")
+        divider.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        divider.setStyleSheet("color: rgba(255,255,255,0.2); font-size: 24px; padding-top: 5px;")
+
+        # Rest
+        rest_layout = QVBoxLayout()
+        lbl_rest = QLabel("REST")
+        lbl_rest.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        lbl_rest.setStyleSheet("color: rgba(255,255,255,0.5); font-size: 10px; font-weight: bold; letter-spacing: 1px;")
+        self.spin_rest = RoseliaSpinBox()
+        self.spin_rest.setRange(1, 60)
+        self.spin_rest.setValue(self.config.get('rest', 5))
+        rest_layout.addWidget(self.spin_rest)
+        rest_layout.addWidget(lbl_rest)
+
+        time_layout.addLayout(work_layout)
+        time_layout.addWidget(divider)
+        time_layout.addLayout(rest_layout)
+        
+        content_layout.addWidget(time_container)
+
+        # --- Presets List ---
+        preset_lbl = QLabel("PRESETS")
+        preset_lbl.setStyleSheet("color: rgba(162, 155, 254, 0.8); font-size: 11px; margin-top: 5px; font-weight: bold;")
+        content_layout.addWidget(preset_lbl)
+
+        self.preset_list = QListWidget()
+        self.preset_list.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.preset_list.setStyleSheet("""
+            QListWidget {
+                background-color: rgba(0, 0, 0, 0.2);
+                border: 1px solid rgba(255, 255, 255, 0.05);
+                border-radius: 8px;
+                color: #ddd;
+                font-size: 13px;
+                padding: 5px;
+            }
+            QListWidget::item {
+                height: 36px;
+                padding-left: 10px;
+                border-radius: 6px;
+                margin-bottom: 2px;
+            }
+            QListWidget::item:hover {
+                background-color: rgba(162, 155, 254, 0.15);
+            }
+            QListWidget::item:selected {
+                background-color: rgba(108, 92, 231, 0.4);
+                border: 1px solid rgba(162, 155, 254, 0.5);
+                color: white;
+            }
+        """)
+        
+        self.presets = self.config.get('presets', [
+            {'name': 'Classic Focus', 'work': 25, 'rest': 5},
+            {'name': 'Deep Dive', 'work': 45, 'rest': 15},
+            {'name': 'Quick Sprint', 'work': 15, 'rest': 3}
+        ])
+        self.refresh_presets()
+        self.preset_list.itemClicked.connect(self.load_preset)
+        self.preset_list.itemDoubleClicked.connect(self.apply_preset) # Double click applies & closes
+        content_layout.addWidget(self.preset_list)
+
+        # --- Action Buttons ---
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(10)
+        
+        # Style helper for secondary buttons
+        sec_btn_style = """
+            QPushButton {
+                background-color: rgba(255,255,255,0.05);
+                border: 1px solid rgba(255,255,255,0.1);
+                color: #bbb;
+                border-radius: 6px;
+                padding: 6px;
+                font-size: 12px;
+            }
+            QPushButton:hover {
+                background-color: rgba(255,255,255,0.1);
+                color: white;
+            }
+        """
+
+        btn_add = QPushButton("Save Preset")
+        btn_add.setToolTip("Save current time settings as preset")
+        btn_add.setStyleSheet(sec_btn_style)
+        btn_add.clicked.connect(self.add_preset)
+
+        btn_rename = QPushButton("Rename")
+        btn_rename.setToolTip("Rename selected preset")
+        btn_rename.setStyleSheet(sec_btn_style)
+        btn_rename.clicked.connect(self.rename_preset)
+        
+        btn_del = QPushButton("Delete")
+        btn_del.setToolTip("Delete selected preset")
+        btn_del.setStyleSheet(sec_btn_style.replace(":hover {", ":hover { background-color: rgba(231, 76, 60, 0.3); color: #e74c3c;"))
+        btn_del.clicked.connect(self.del_preset)
+        
+        btn_layout.addWidget(btn_add)
+        btn_layout.addWidget(btn_rename)
+        btn_layout.addWidget(btn_del)
+        content_layout.addLayout(btn_layout)
+
+        content_layout.addStretch()
+
+        # --- Main Save Button ---
+        btn_main = QPushButton("APPLY SETTINGS")
+        btn_main.setCursor(Qt.CursorShape.PointingHandCursor)
+        btn_main.clicked.connect(self.save_and_close)
+        btn_main.setStyleSheet("""
+            QPushButton {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #6c5ce7, stop:1 #a29bfe);
+                border: none;
+                border-radius: 20px;
+                color: white;
+                font-weight: bold;
+                font-size: 14px;
+                padding: 12px;
+                letter-spacing: 1px;
+            }
+            QPushButton:hover {
+                background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #5f27cd, stop:1 #6c5ce7);
+                margin-top: 1px;
+            }
+        """)
+        
+        content_layout.addWidget(btn_main)
+
+    def center_window(self):
+        # Center logic
+        try:
+             # Basic centering on screen
+             from PyQt6.QtGui import QGuiApplication
+             screen = QGuiApplication.primaryScreen().availableGeometry()
+             size = self.geometry()
+             self.move((screen.width() - size.width()) // 2, 
+                       (screen.height() - size.height()) // 2)
+        except:
+             pass
+
+    # --- Mouse Events for Dragging ---
+    def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.LeftButton:
+            self.drag_pos = event.globalPosition().toPoint() - self.frameGeometry().topLeft()
+            event.accept()
+
+    def mouseMoveEvent(self, event):
+        if event.buttons() == Qt.MouseButton.LeftButton and self.drag_pos:
+            self.move(event.globalPosition().toPoint() - self.drag_pos)
+            event.accept()
+
+    # --- Logic ---
+    def refresh_presets(self):
+        self.preset_list.clear()
+        for p in self.presets:
+            item = QListWidgetItem(f"{p['name']}   [{p['work']} / {p['rest']}]")
+            self.preset_list.addItem(item)
+
+    def load_preset(self, item):
+        idx = self.preset_list.row(item)
+        if idx >= 0:
+            data = self.presets[idx]
+            self.spin_work.setValue(data['work'])
+            self.spin_rest.setValue(data['rest'])
+
+    def apply_preset(self, item):
+        self.load_preset(item)
+        self.save_and_close()
+
+    def add_preset(self):
+        w = self.spin_work.value()
+        r = self.spin_rest.value()
+        
+        # Ask for name
+        name, ok = QInputDialog.getText(self, "New Preset", "Preset Name:",
+                                      QLineEdit.EchoMode.Normal, f"Focus {w}/{r}")
+        if ok and name:
+            self.presets.append({'name': name, 'work': w, 'rest': r})
+            self.refresh_presets()
+            
+    def rename_preset(self):
+        row = self.preset_list.currentRow()
+        if row >= 0:
+            current_name = self.presets[row]['name']
+            name, ok = QInputDialog.getText(self, "Rename Preset", "New Name:",
+                                          QLineEdit.EchoMode.Normal, current_name)
+            if ok and name:
+                self.presets[row]['name'] = name
+                self.refresh_presets()
+
+    def del_preset(self):
+        row = self.preset_list.currentRow()
+        if row >= 0:
+            self.presets.pop(row)
+            self.refresh_presets()
+
+    def save_and_close(self):
+        new_config = {
+            'work': self.spin_work.value(),
+            'rest': self.spin_rest.value(),
+            'presets': self.presets
+        }
+        if self.on_save:
+            self.on_save(new_config)
+        self.close()
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    app = QApplication(sys.argv)
+    cfg = {'work': 25, 'rest': 5}
+    w = PomodoroSettingsWindow(cfg, lambda x: print(x))
+    w.show()
+    sys.exit(app.exec())

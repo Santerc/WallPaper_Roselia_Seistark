@@ -19,77 +19,50 @@
             "icon": "E:/Adobe Audition 2022/Adobe Audition 2022/resources/content/images/appIcon.png",
             "name": "Adobe Audition",
             "path": "E:/AU/Adobe Audition 2022/Adobe Audition.exe"
+        },
+        {
+            "name": "哔哩哔哩",
+            "path": "D:/bilibili/哔哩哔哩.exe",
+            "icon": "D:/bilibili/uninstallerIcon.ico"
         }
     ],
-    "autoStart": false,
+    "autoStart": true,
     "dailyGoals": {
-        "date": "2026-01-21",
+        "date": "2026-01-22",
         "items": [
             {
-                "done": false,
-                "text": "航概100题整理"
-            },
-            {
-                "done": false,
-                "text": "日语学习"
-            },
-            {
                 "done": true,
-                "text": "模电复习"
+                "text": "模电完成MOS管"
+            },
+            {
+                "done": false,
+                "text": "日语完成5单元复习并背诵单词"
+            },
+            {
+                "done": false,
+                "text": "航概1000题（到400）"
+            },
+            {
+                "done": false,
+                "text": "壁纸番茄钟部分"
+            },
+            {
+                "done": false,
+                "text": "微机原理复习"
             }
         ]
     },
-    "memos": [
-        {
-            "content": "555555\n555555\n\n\n55555\n\n55\n55",
-            "dueDate": null,
-            "enableReminder": false,
-            "id": 1768982081030,
-            "text": "555555\n555555\n\n\n55555\n\n55\n55",
-            "title": "222"
-        },
-        {
-            "content": "bbb",
-            "dueDate": null,
-            "enableReminder": false,
-            "id": 1768982144986,
-            "text": "bbb",
-            "title": "qqq"
-        },
-        {
-            "content": "aadfc",
-            "dueDate": null,
-            "enableReminder": false,
-            "id": 1768982154299,
-            "text": "aadfc",
-            "title": "ccc"
-        },
-        {
-            "content": "edvevber",
-            "dueDate": null,
-            "enableReminder": false,
-            "id": 1768982162575,
-            "text": "edvevber",
-            "title": "defew"
-        },
-        {
-            "content": "222",
-            "done": false,
-            "dueDate": null,
-            "enableReminder": false,
-            "id": 1768984471211,
-            "reminderShown": false,
-            "text": "222",
-            "title": "aaa"
-        },
-        {
-            "content": "ewver",
-            "dueDate": null,
-            "enableReminder": false,
-            "id": 1768992856848,
-            "text": "ewver",
-            "title": "adc"
-        }
-    ],
-    "musicPath": "D:/CloudMusic/cloudmusic.exe"
+    "memos": [],
+    "musicPath": "D:/CloudMusic/cloudmusic.exe",
+    "pomodoroConfig": {
+        "work": 30,
+        "rest": 5,
+        "presets": [
+            {
+                "name": "测试",
+                "work": 30,
+                "rest": 5
+            }
+        ]
+    }
 }
