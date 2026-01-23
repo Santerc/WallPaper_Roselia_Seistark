@@ -7,6 +7,18 @@ import { releaseLaunchApp } from './backend.js';
 // ==========================================
 
 export function toggleDock() {
+    // 检查后端是否在线
+    const orb = document.getElementById('main-orb');
+    if (!orb || !orb.classList.contains('online')) {
+        // 后端不在线，显示modal
+        const modal = document.getElementById('backend-offline-modal');
+        if (modal) {
+            modal.style.display = 'block';
+            // 初始化为中文
+            if (window.switchLang) window.switchLang('cn');
+        }
+        return;
+    }
     const dock = document.getElementById('app-dock');
     if (!dock) return;
     state.isDockOpen = !state.isDockOpen;

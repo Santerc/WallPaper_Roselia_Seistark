@@ -284,5 +284,29 @@
            }, 1500);
         });
     </script>
+
+    <!-- Backend Offline Modal -->
+    <div id="backend-offline-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">后端未运行</h2>
+                <div class="lang-switch">
+                    <button onclick="switchLang('en')">EN</button>
+                    <button onclick="switchLang('cn')" class="active">CN</button>
+                    <button onclick="switchLang('jp')">JP</button>
+                </div>
+                <span class="close-btn" onclick="closeBackendModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <p id="modal-text">后端服务器未运行。请启动它以使用应用启动功能。</p>
+                <p><span id="wallpaper-dir-label">壁纸目录为:</span> <span id="wallpaper-dir" class="copyable">加载中...</span></p>
+                <p><span id="expected-path-label">预期服务器路径:</span> 壁纸所在目录下server.exe</p>
+                <p><span id="full-path-label">完整路径:</span> <span id="full-path" class="copyable">加载中...</span></p>
+                <p id="download-label">如果未找到，请在以下网站下载server.exe：</p>
+                <p><span id="github-link" class="copyable">https://github.com/yourusername/WallPaper_WE</span></p>
+            </div>
+        </div>
+    </div>
+
 </body>
 </html>

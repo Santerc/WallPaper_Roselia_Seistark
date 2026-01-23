@@ -41,6 +41,9 @@ window.toggleGoal = toggleGoal;
 window.deleteGoal = deleteGoal;
 window.openSidebarTab = openSidebarTab;
 window.switchMemoTab = switchMemoTab;
+window.closeBackendModal = closeBackendModal;
+window.switchLang = switchLang;
+window.copyToClipboard = copyToClipboard;
 
 
 // ==========================================
@@ -189,10 +192,118 @@ window.wallpaperPropertyListener = {
     }
 };
 
+// Close Backend Modal
+function closeBackendModal() {
+    const modal = document.getElementById('backend-offline-modal');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+
+// Switch Language for Backend Modal
+function switchLang(lang) {
+    const titleEl = document.getElementById('modal-title');
+    const textEl = document.getElementById('modal-text');
+    const wallpaperDirLabelEl = document.getElementById('wallpaper-dir-label');
+    const wallpaperDirEl = document.getElementById('wallpaper-dir');
+    const expectedPathLabelEl = document.getElementById('expected-path-label');
+    const fullPathLabelEl = document.getElementById('full-path-label');
+    const fullPathEl = document.getElementById('full-path');
+    const downloadLabelEl = document.getElementById('download-label');
+    const githubEl = document.getElementById('github-link');
+    
+    const wallpaperDir = window.wallpaperDir || '未知';
+    const fullPath = wallpaperDir + '\\server.exe';
+    
+    const langs = {
+        en: {
+            title: 'Backend Server Not Running',
+            text: 'Please start the backend server to use app launch features.',
+            wallpaperDirLabel: 'Wallpaper directory:',
+            expectedPathLabel: 'Expected server path:',
+            fullPathLabel: 'Full path:',
+            downloadLabel: 'If not found, please download server.exe from the following website:',
+            github: 'https://github.com/yourusername/WallPaper_WE'
+        },
+        cn: {
+            title: '后端服务器未运行',
+            text: '请启动后端服务器以使用应用启动功能。',
+            wallpaperDirLabel: '壁纸目录为:',
+            expectedPathLabel: '预期服务器路径:',
+            fullPathLabel: '完整路径:',
+            downloadLabel: '如果未找到，请在以下网站下载server.exe：',
+            github: 'https://github.com/yourusername/WallPaper_WE'
+        },
+        jp: {
+            title: 'バックエンドサーバーが実行されていません',
+            text: 'アプリ起動機能を使用するにはバックエンドサーバーを起動してください。',
+            wallpaperDirLabel: '壁紙ディレクトリ:',
+            expectedPathLabel: '期待されるサーバーパス:',
+            fullPathLabel: '完全パス:',
+            downloadLabel: '見つからない場合、以下のウェブサイトからserver.exeをダウンロードしてください：',
+            github: 'https://github.com/yourusername/WallPaper_WE'
+        }
+    };
+    
+    const data = langs[lang];
+    titleEl.textContent = data.title;
+    textEl.textContent = data.text;
+    wallpaperDirLabelEl.textContent = data.wallpaperDirLabel;
+    wallpaperDirEl.textContent = wallpaperDir;
+    expectedPathLabelEl.textContent = data.expectedPathLabel;
+    fullPathLabelEl.textContent = data.fullPathLabel;
+    fullPathEl.textContent = fullPath;
+    downloadLabelEl.textContent = data.downloadLabel;
+    githubEl.textContent = data.github;
+    
+    // Update active button
+    document.querySelectorAll('.lang-switch button').forEach(btn => btn.classList.remove('active'));
+    document.querySelector(`.lang-switch button[onclick="switchLang('${lang}')"]`).classList.add('active');
+}
+
+// Copy to Clipboard
+function copyToClipboard(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('Copied to clipboard', 'success');
+        }).catch(() => {
+            fallbackCopyTextToClipboard(text);
+        });
+    } else {
+        fallbackCopyTextToClipboard(text);
+    }
+}
+
+function fallbackCopyTextToClipboard(text) {
+    const textArea = document.createElement('textarea');
+    textArea.value = text;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-999999px';
+    textArea.style.top = '-999999px';
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+    try {
+        document.execCommand('copy');
+        showToast('Copied to clipboard', 'success');
+    } catch (err) {
+        showToast('Failed to copy', 'error');
+    }
+    document.body.removeChild(textArea);
+}
+
 // ==========================================
 // 初始化
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
+    // Set wallpaper directory from location
+    const url = new URL(location.href);
+    let dir = url.pathname;
+    if (dir.startsWith('/')) dir = dir.substring(1);
+    dir = dir.replace('index.html', '').replace(/\//g, '\\');
+    if (dir.endsWith('\\')) dir = dir.slice(0, -1);
+    window.wallpaperDir = dir;
+
     initClock();
     initAnimation();
     initAudio();
@@ -204,6 +315,13 @@ document.addEventListener('DOMContentLoaded', () => {
     // 状态检查
     setInterval(checkBackendStatus, 5000);
     checkBackendStatus();
+
+    // Copy functionality for modal
+    document.addEventListener('click', function(e) {
+        if (e.target.classList.contains('copyable')) {
+            copyToClipboard(e.target.textContent);
+        }
+    });
 
     // Debug Click
     document.addEventListener('click', (e) => {

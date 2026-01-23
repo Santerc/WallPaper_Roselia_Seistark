@@ -48,13 +48,22 @@ export function controlMedia(action) {
 }
 
 // 状态检查
+let backendWasOffline = true; // 假设启动时后端离线
+
 export async function checkBackendStatus() {
     const orb = document.getElementById('main-orb'); 
     if (!orb) return;
     try {
         await fetch(`${BACKEND_URL}/config`, { signal: AbortSignal.timeout(2000) });
         orb.classList.add('online');
+        // 如果后端从离线变为在线，且是第一次，则刷新页面
+        if (backendWasOffline && !sessionStorage.getItem('refreshedOnBackendOnline')) {
+            sessionStorage.setItem('refreshedOnBackendOnline', 'true');
+            location.reload();
+        }
+        backendWasOffline = false;
     } catch (e) {
         orb.classList.remove('online');
+        backendWasOffline = true;
     }
 }
