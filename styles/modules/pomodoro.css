@@ -87,12 +87,13 @@
 }
 .pomo-ring {
     fill: none;
-    stroke: #ff7675; /* Work Color */
+    stroke: url(#pomo-gradient); /* Gradient Purple */
     stroke-width: 2.5;
     stroke-linecap: round;
     transition: stroke-dasharray 1s linear, stroke 0.3s;
-    filter: drop-shadow(0 0 10px #ff7675);
+    filter: drop-shadow(0 0 15px #9c88ff) drop-shadow(0 0 30px rgba(156, 136, 255, 0.5));
     opacity: 0;
+    animation: pomoGlow 2s ease-in-out infinite alternate;
 }
 .widget-time:hover .pomo-ring, .widget-time.pomo-active .pomo-ring {
     opacity: 1;
@@ -105,11 +106,26 @@
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    color: #ff7675;
-    text-shadow: 0 0 10px rgba(255, 118, 117, 0.5);
+    color: #e74c3c;
+    text-shadow: 0 0 15px rgba(231, 76, 60, 0.8);
 }
 .widget-time.pomo-active .pomo-status {
     opacity: 1; transform: translateY(0);
 }
-.widget-time.rest-mode .pomo-ring { stroke: #00cec9; filter: drop-shadow(0 0 10px #00cec9); }
+.widget-time.rest-mode .pomo-ring { stroke: #00cec9; filter: drop-shadow(0 0 10px #00cec9); animation: none; }
 .widget-time.rest-mode .pomo-status { color: #00cec9; text-shadow: 0 0 10px rgba(0, 206, 201, 0.5); }
+
+@keyframes pomoGlow {
+    0% {
+        filter: drop-shadow(0 0 15px #9c88ff) drop-shadow(0 0 30px rgba(156, 136, 255, 0.5)) drop-shadow(0 0 50px rgba(156, 136, 255, 0.2));
+        stroke-width: 2.5;
+    }
+    50% {
+        filter: drop-shadow(0 0 25px #6c5ce7) drop-shadow(0 0 50px rgba(108, 92, 231, 0.8)) drop-shadow(0 0 80px rgba(108, 92, 231, 0.4));
+        stroke-width: 3.0;
+    }
+    100% {
+        filter: drop-shadow(0 0 15px #a29bfe) drop-shadow(0 0 30px rgba(162, 155, 254, 0.5)) drop-shadow(0 0 50px rgba(162, 155, 254, 0.2));
+        stroke-width: 2.5;
+    }
+}

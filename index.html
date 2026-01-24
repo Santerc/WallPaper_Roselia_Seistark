@@ -107,6 +107,15 @@
     <div class="widget-time" onclick="togglePomodoro()">
         <!-- Pomodoro Ring Overlay -->
         <svg class="pomo-svg" viewBox="0 0 100 100">
+            <defs>
+                <linearGradient id="pomo-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" style="stop-color:#9c88ff;stop-opacity:1" />
+                    <stop offset="50%" style="stop-color:#6c5ce7;stop-opacity:1" />
+                    <stop offset="100%" style="stop-color:#a29bfe;stop-opacity:1" />
+                    <animate attributeName="x1" values="0%;100%;0%" dur="3s" repeatCount="indefinite" />
+                    <animate attributeName="x2" values="100%;200%;100%" dur="3s" repeatCount="indefinite" />
+                </linearGradient>
+            </defs>
              <circle class="pomo-bg" cx="50" cy="50" r="48"></circle>
              <circle class="pomo-ring" id="pomo-ring" cx="50" cy="50" r="48" stroke-dasharray="0, 301.6"></circle>
         </svg>
