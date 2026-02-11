@@ -1,0 +1,73 @@
+.plugin-container {
+    position: absolute;
+    box-sizing: border-box;
+    z-index: 500; /* Ensure above canvas */
+    /* transition: box-shadow 0.2s; */
+}
+
+.plugin-container.edit-mode {
+    border: 2px dashed rgba(0, 255, 255, 0.8); /* Brighter border */
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 10000;
+    cursor: move; /* Show move cursor on entire box */
+}
+
+.drag-handle {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.4);
+    color: black;
+    font-weight: bold;
+    font-size: 14px;
+    text-align: center;
+    cursor: move;
+    line-height: 20px;
+    display: none; /* hidden by default */
+    z-index: 1000;
+    user-select: none;
+}
+
+.plugin-container.edit-mode .drag-handle {
+    display: block;
+}
+
+.plugin-container.is-dragging {
+    opacity: 0.8;
+    z-index: 9999;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5);
+    border-color: aqua;
+}
+
+.collision-warning {
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5) inset;
+    border: 1px solid red !important;
+}
+
+.collision-active {
+    border: 1px solid red !important;
+    background: rgba(255, 0, 0, 0.1) !important;
+}
+
+.snap-success {
+    animation: flashGreen 0.5s;
+}
+
+.snap-fail {
+    animation: shake 0.4s;
+}
+
+@keyframes flashGreen {
+    0% { border-color: lime; }
+    100% { border-color: transparent; }
+}
+
+@keyframes shake {
+    0% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    50% { transform: translateX(5px); }
+    75% { transform: translateX(-5px); }
+    100% { transform: translateX(0); }
+}

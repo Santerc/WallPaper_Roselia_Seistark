@@ -1,0 +1,17 @@
+{
+  "id": "com.internal.clock",
+  "name": "Digital Clock",
+  "version": "1.0.0",
+  "description": "Standard wallpaper clock",
+  "type": "widget",
+  "entry": {
+    "frontend": "index.js"
+  },
+  "defaultPosition": {
+    "x": 100,
+    "y": 100,
+    "width": 300,
+    "height": 150
+  },
+  "capabilities": ["widget"]
+}

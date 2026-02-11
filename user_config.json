@@ -27,8 +27,9 @@
         }
     ],
     "autoStart": true,
+    "editMode": true,
     "dailyGoals": {
-        "date": "2026-01-24",
+        "date": "2026-02-11",
         "items": []
     },
     "memos": [],
@@ -46,7 +47,7 @@
                 "work": 45
             }
         ],
-        "rest": 15,
-        "work": 45
+        "rest": 5,
+        "work": 25
     }
 }

@@ -23,14 +23,18 @@ from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 from memo_gui import MemoWindow
 from goals_gui import GoalsWindow
 from pomo_gui import PomodoroSettingsWindow
+from plugin_manager import PluginManager
 
 # ================= Configuration =================
 PORT = 35678
 # Determine working directory (handle PyInstaller frozen state)
 if getattr(sys, 'frozen', False):
     WORKING_DIR = os.path.dirname(sys.executable)
+    PLUGINS_DIR = os.path.join(WORKING_DIR, 'plugins')
 else:
     WORKING_DIR = os.path.dirname(os.path.abspath(__file__))
+    # Go up one level from backend_python to root, then plugins
+    PLUGINS_DIR = os.path.join(os.path.dirname(WORKING_DIR), 'plugins')
 
 CONFIG_FILE = os.path.join(WORKING_DIR, 'user_config.json')
 
@@ -40,11 +44,16 @@ DEFAULT_CONFIG = {
     "dailyGoals": {"date": "", "items": []}, # New Daily Goals
     "musicPath": "",
     "autoStart": False,
-    "debug": False # Debug toggle
+    "debug": False, # Debug toggle
+    "layout": [] # Plugin Layout
 }
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=PLUGINS_DIR) # Serve plugins statically if needed, or see routes below
 CORS(app)  # Enable CORS for all routes
+
+# Initialize Plugin Manager
+plugin_manager = PluginManager(PLUGINS_DIR)
+
 
 
 # ================= GUI Manager (Bridge) =================
@@ -267,7 +276,57 @@ def press_media_key(vk_code):
     user32.keybd_event(vk_code, 0, 0, 0)
     # Release
     user32.keybd_event(vk_code, 0, KEYEVENTF_KEYUP, 0)
+# Global Server State
+SERVER_STATE = {
+    "edit_mode": False
+}
 
+# ================= Plugin Routes =================
+@app.route('/api/system/mode', methods=['POST'])
+def set_system_mode():
+    data = request.json
+    mode = data.get('mode', 'runtime')
+    SERVER_STATE['edit_mode'] = (mode == 'edit')
+    return jsonify({"success": True, "mode": mode})
+
+@app.route('/plugins/<path:filename>')
+def serve_plugins(filename):
+    return send_file(os.path.join(PLUGINS_DIR, filename))
+
+@app.route('/api/plugins', methods=['GET'])
+def list_plugins():
+    plugins = plugin_manager.discover_plugins()
+    return jsonify(plugins)
+
+@app.route('/api/layout/update', methods=['POST'])
+def update_layout():
+    # Helper to load/save config safely
+    config = load_config()
+    
+    if not config.get('editMode', False):
+        return jsonify({"status": "error", "message": "Server is not in edit mode (editMode=False in config)"}), 403
+
+    try:
+        data = request.json
+        new_layout = data.get('layout', [])
+        
+        valid, conflicts = plugin_manager.validate_layout_no_overlap(new_layout)
+        
+        if not valid:
+            return jsonify({
+                "status": "error",
+                "message": "Layout overlap detected",
+                "conflicts": conflicts
+            }), 400
+            
+        # Helper to load/save config safely
+        config = load_config()
+        config['layout'] = new_layout
+        save_config(config)
+        
+        return jsonify({"status": "success", "layout": new_layout})
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 # ================= Routes =================
 
 @app.route('/proxy/image', methods=['GET'])

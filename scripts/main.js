@@ -11,6 +11,60 @@ import { initMemos, addNewMemo as addNewMemoAction, openMemoEditor, toggleMemoSt
 import { initGoals, addGoal, toggleGoal, deleteGoal } from './goals.js';
 import { togglePomodoro, initPomodoro } from './pomodoro.js';
 import { initScrollFix } from './scroll_fix.js';
+import { PluginAPI } from './plugin-sdk.js';
+import { PluginDragManager } from './plugin-drag.js';
+
+// ==========================================
+// Check and Init Plugins
+// ==========================================
+let dragManager = null;
+
+async function initPluginSystem() {
+    logDebug("Initializing Plugin System...");
+    try {
+        const response = await fetch(`${BACKEND_URL}/api/plugins`);
+        const plugins = await response.json();
+        
+        // Load each plugin's entry script
+        for (const manifest of plugins) {
+            if (manifest.entry && manifest.entry.frontend) {
+                const entryPath = `${BACKEND_URL}${manifest.basePath}/${manifest.entry.frontend}`;
+                try {
+                    // Dynamic import
+                    const module = await import(entryPath);
+                    // Register Default Export as Class
+                    if (module.default) {
+                        PluginAPI.register(manifest.id, module.default);
+                    }
+                } catch (e) {
+                    console.error(`Failed to load plugin script ${entryPath}`, e);
+                }
+            }
+        }
+        
+        // Init Plugins
+        await PluginAPI.initPlugins(plugins);
+        
+        // Init Drag Manager
+        dragManager = new PluginDragManager();
+        
+        // Init Drag Manager
+        dragManager = new PluginDragManager();
+        
+        showToast(`Plugins: ${plugins.length}`);
+
+    } catch (e) {
+        console.error("Plugin Init Failed", e);
+        showToast("Plugin Init Failed: " + e.message);
+    }
+}
+
+window.savePluginLayout = async function() {
+    if (dragManager) {
+        await dragManager.saveLayout();
+        showToast("Layout Saved!");
+    }
+};
 
 // ==========================================
 // 全局绑定 (为了让 HTML onclick 工作)
@@ -52,6 +106,7 @@ window.copyToClipboard = copyToClipboard;
 
 async function loadConfigToUI() {
     logDebug("Starting Config Reload from Main...");
+    // showToast("Loading Config..."); // Debug
     try {
         const data = await fetchConfig();
         
@@ -66,6 +121,13 @@ async function loadConfigToUI() {
             if(debugEl) debugEl.style.display = 'block';
         } else {
             if(debugEl) debugEl.style.display = 'none';
+        }
+        
+        // Plugin Mode UI Update
+        if (state.currentConfig.editMode) {
+             PluginAPI.setMode('edit');
+        } else {
+             PluginAPI.setMode('runtime');
         }
 
         // 更新全局 UI
@@ -84,6 +146,9 @@ async function loadConfigToUI() {
         
         logDebug(`Reloading Goals. Items: ${state.currentConfig.dailyGoals?.items?.length || 0}`);
         try { initGoals(); } catch(e) { console.error("Goals Render fail", e); }
+
+        // Start Plugin System
+        initPluginSystem();
 
     } catch (e) {
         logDebug("Config Load Error: " + e.message);

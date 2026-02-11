@@ -4,12 +4,15 @@
     <meta charset="UTF-8">
     <title>Liquid Dream Interface</title>
     <link rel="stylesheet" href="styles/main.css">
+    <link rel="stylesheet" href="styles/plugin.css">
 </head>
 <body>
 
     <div id="bg-layer"></div>
     
     <canvas id="sakura-canvas"></canvas>
+
+    <!-- Plugin Mode Control (Removed per request) -->
 
     <!-- System Stats -->
     <div class="system-stats">
@@ -282,6 +285,8 @@
             return false;
         };
     </script>
+    <script type="module" src="scripts/plugin-sdk.js"></script>
+    <script type="module" src="scripts/plugin-drag.js"></script>
     <script type="module" src="scripts/main.js"></script>
     <script>
         // Inline fail-safe check
