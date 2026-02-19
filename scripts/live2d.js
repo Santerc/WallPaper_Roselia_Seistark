@@ -8,23 +8,24 @@
 
     // ── 对话文本池（中文）──────────────────────────────────────
     const IDLE_MESSAGES = [
-        '今天也要加油哦！',
-        '有什么我可以帮你的吗？',
-        '好像听到音乐声了……',
-        '在专心工作吗？真棒！',
-        '累了就休息一下吧～',
-        '今天的目标完成了多少？',
-        '要注意身体哦，别太拼了',
-        '你已经很努力了！',
-        '记得多喝水～',
+        '✨ 今天也要加油哦！',
+        '💕 有什么我可以帮你的吗？',
+        '🎵 好像听到音乐声了……',
+        '⭐ 在专心工作吗？真棒！',
+        '🍃 累了就休息一下吧～',
+        '📋 今天的目标完成了多少？',
+        '💫 要注意身体哦，别太拼了',
+        '🌸 你已经很努力了！',
+        '💧 记得多喝水～',
+        '🌙 今天过得怎么样？',
     ];
 
     const TAP_MESSAGES = [
-        '诶，你戳哪里呢！',
-        '嘻嘻，好痒～',
-        '轻一点啦！',
-        '……你、你干什么！',
-        '/ / /  算了，随便你……',
+        '😳 诶，你戳哪里呢！',
+        '🙈 嘻嘻，好痒～',
+        '💢 轻一点啦！',
+        '😤 ……你、你干什么！',
+        '💦 / / / 算了，随便你……',
     ];
 
     // ── 工具函数 ──────────────────────────────────────────────
@@ -34,14 +35,30 @@
         const bubble = document.getElementById('live2d-bubble');
         if (!bubble) return;
         clearTimeout(bubbleTimer);
+        // 重置动画：先移除再强制重流再加回
+        bubble.classList.remove('visible', 'bubble-pop');
+        void bubble.offsetWidth;
         bubble.textContent = text;
-        bubble.classList.add('visible');
-        bubbleTimer = setTimeout(() => bubble.classList.remove('visible'), duration);
+        bubble.classList.add('visible', 'bubble-pop');
+        bubbleTimer = setTimeout(() => {
+            bubble.classList.remove('visible', 'bubble-pop');
+        }, duration);
     }
 
     function randomFrom(arr) {
         return arr[Math.floor(Math.random() * arr.length)];
     }
+
+    // ── 平滑眼追踪状态 ──────────────────────────────────────────
+    // 目标焦点（PIXI 坐标），由 mousemove 更新
+    let targetFocusX = 0, targetFocusY = 0;
+    // 当前平滑后焦点
+    let currentFocusX = 0, currentFocusY = 0;
+    let focusInitialized = false;
+    // 上次鼠标移动时间
+    let lastMouseMoveTime = 0;
+    // 动作播放锁：timestamp，期间暂停眼追踪
+    let motionLockUntil = 0;
 
     // ── Debug 辅助线 ──────────────────────────────────────────
     let debugActive = false;
@@ -208,21 +225,69 @@
         }
 
         resizeModel();
-        window.addEventListener('resize', resizeModel);
+        window.addEventListener('resize', () => {
+            resizeModel();
+            // 重置焦点中心
+            focusInitialized = false;
+        });
 
-        // ── 鼠标视线追踪（转换为 PIXI 坐标后传入）──
+        // ── 初始化焦点到模型中心 ──
+        function initFocusCenter() {
+            currentFocusX = targetFocusX = app.renderer.width  / 2;
+            currentFocusY = targetFocusY = app.renderer.height / 2;
+            focusInitialized = true;
+        }
+        initFocusCenter();
+
+        // ── 平滑眼追踪 RAF 循环 ──
+        // 插值速度：0.04 = 慢速跟随，更自然
+        const LERP_SPEED  = 0.04;
+        // 距离阈值：鼠标足够近时不再更新（避免抖动）
+        const FOCUS_DEAD_ZONE = 8;  // pixi px
+        // 鼠标静止多少 ms 后眼睛回归休息位
+        const IDLE_RETURN_MS = 3500;
+        // 休息位：略偏上偏右（自然向「观看者」方向）
+        function getRestFocusX() { return app.renderer.width  * 0.55; }
+        function getRestFocusY() { return app.renderer.height * 0.38; }
+
+        ;(function focusLoop() {
+            const now = Date.now();
+            const locked = now < motionLockUntil;
+
+            if (!locked) {
+                const idle = (now - lastMouseMoveTime) > IDLE_RETURN_MS && lastMouseMoveTime > 0;
+                const tx = idle ? getRestFocusX() : targetFocusX;
+                const ty = idle ? getRestFocusY() : targetFocusY;
+
+                const dx = tx - currentFocusX;
+                const dy = ty - currentFocusY;
+
+                if (Math.abs(dx) > 0.1 || Math.abs(dy) > 0.1) {
+                    currentFocusX += dx * LERP_SPEED;
+                    currentFocusY += dy * LERP_SPEED;
+                    model.focus(currentFocusX, currentFocusY);
+                }
+            }
+            requestAnimationFrame(focusLoop);
+        })();
+
+        // ── 鼠标移动：只更新目标，不直接 focus ──
         document.addEventListener('mousemove', (e) => {
             mouseScreenX = e.clientX;
             mouseScreenY = e.clientY;
+            lastMouseMoveTime = Date.now();
 
-            // 将屏幕鼠标位置转为 canvas 内 PIXI 像素坐标
             const rect = canvas.getBoundingClientRect();
             const pixiX = (e.clientX - rect.left) * (canvas.width  / rect.width);
             const pixiY = (e.clientY - rect.top)  * (canvas.height / rect.height);
 
-            // focus 接受屏幕坐标，但实际上需要在 renderer 坐标系内
-            // 使用 app.renderer 内坐标传入以修正映射
-            model.focus(pixiX, pixiY);
+            // 只有鼠标超出死区才更新目标，减少微抖动
+            const ddx = pixiX - targetFocusX;
+            const ddy = pixiY - targetFocusY;
+            if (ddx*ddx + ddy*ddy > FOCUS_DEAD_ZONE * FOCUS_DEAD_ZONE) {
+                targetFocusX = pixiX;
+                targetFocusY = pixiY;
+            }
 
             updateDebugOverlay(e.clientX, e.clientY);
         });
@@ -234,13 +299,16 @@
             const py = (e.clientY - rect.top)  * (canvas.height / rect.height);
 
             const hit = model.hitTest(px, py);
+            // 锁定眼追踪 2.8 秒（动作播放期间）
+            motionLockUntil = Date.now() + 2800;
+
             if (hit && hit.length > 0) {
                 model.motion('tap_body');
-                showBubble(randomFrom(TAP_MESSAGES), 3000);
+                showBubble(randomFrom(TAP_MESSAGES), 3200);
             } else {
                 const motions = ['happy', 'wink', 'tap_body'];
                 model.motion(randomFrom(motions));
-                showBubble(randomFrom(IDLE_MESSAGES), 3000);
+                showBubble(randomFrom(IDLE_MESSAGES), 3200);
             }
         });
 
