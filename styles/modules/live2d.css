@@ -1,29 +1,409 @@
-/* ================= Live2D Widget ================= */
+/* ================= Live2D + Music — Full-Width Bottom Stage ================= */
 
+/* ── 整体容器：全宽、任务栏上方 ── */
 #live2d-widget {
     position: fixed;
-    bottom: 0;
-    left: 20px;
-    width: 380px;
-    height: 600px;
+    bottom: 48px;       /* Windows 默认任务栏高度 */
+    left: 0; right: 0;
+    width: 100%;
+    height: 780px;
     z-index: 150;
     pointer-events: none;
     user-select: none;
 }
 
+/* ── Lisa 画布：左侧锚定 ── */
 #live2d-canvas {
-    width: 100%;
-    height: 100%;
+    position: absolute;
+    left: 30px;
+    bottom: 192px;        /* 面板高度 */
+    width: 540px;
+    height: calc(100% - 192px); /* ≈ 588px */
     pointer-events: auto;
     cursor: pointer;
 }
 
+/* ── 对话气泡：Lisa 头部右上方 ── */
+#live2d-bubble {
+    position: absolute;
+    bottom: 600px;
+    left: 360px;
+    transform: scale(0.85);
+    transform-origin: bottom left;
+    background: linear-gradient(135deg,
+        rgba(255, 220, 245, 0.94) 0%,
+        rgba(235, 205, 255, 0.94) 100%);
+    border: 1.5px solid rgba(220, 150, 255, 0.55);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-radius: 18px 18px 18px 4px;
+    padding: 11px 16px;
+    color: #5a2d7a;
+    font-size: 13px;
+    font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+    font-weight: 500;
+    max-width: 220px;
+    white-space: normal;
+    line-height: 1.6;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    box-shadow:
+        0 4px 24px rgba(180, 80, 220, 0.2),
+        inset 0 1px 0 rgba(255,255,255,0.75);
+    letter-spacing: 0.01em;
+    z-index: 2;
+}
+#live2d-bubble.visible {
+    opacity: 1;
+    transform: scale(1);
+}
+#live2d-bubble.bubble-pop {
+    animation: bubblePop 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+@keyframes bubblePop {
+    0%   { transform: scale(0.65); opacity: 0; }
+    60%  { transform: scale(1.07); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
+}
+#live2d-bubble::before {
+    content: '';
+    position: absolute;
+    bottom: -10px; left: 18px;
+    width: 18px; height: 12px;
+    background: rgba(235, 205, 255, 0.94);
+    clip-path: polygon(0 0, 60% 0, 0% 100%);
+    border-left: 1.5px solid rgba(220, 150, 255, 0.55);
+}
+#live2d-bubble::after {
+    content: '';
+    position: absolute;
+    top: 6px; left: 12px; right: 12px; height: 6px;
+    border-radius: 4px;
+    background: linear-gradient(90deg, rgba(255,255,255,0.6), rgba(255,255,255,0.1));
+    pointer-events: none;
+}
+
+/* ── 隐藏/显示按钮：面板右侧外 ── */
+#live2d-toggle {
+    position: fixed;
+    bottom: 52px;
+    right: 22px;
+    z-index: 155;
+    background: rgba(15, 8, 38, 0.65);
+    border: 1px solid rgba(160, 100, 255, 0.3);
+    border-radius: 20px;
+    color: rgba(190, 160, 255, 0.7);
+    font-size: 10px;
+    padding: 4px 12px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    letter-spacing: 0.06em;
+    backdrop-filter: blur(8px);
+}
+#live2d-toggle:hover {
+    background: rgba(100, 50, 200, 0.35);
+    color: #ddd0ff;
+    border-color: rgba(180, 120, 255, 0.6);
+    box-shadow: 0 0 12px rgba(140, 60, 255, 0.3);
+}
+
+/* ── 隐藏动画 ── */
+#live2d-widget.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(40px);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+#live2d-widget:not(.hidden) {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+/* ══════════════════════════════════════════════════════════
+   Lisa's Music Stage  —  全宽底栏
+══════════════════════════════════════════════════════════ */
+#lisa-music-panel {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 192px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 0;
+    pointer-events: auto;
+    overflow: hidden;
+    /* 顶部全透明→底部半透明，自然融入壁纸 */
+    background: linear-gradient(
+        to bottom,
+        transparent 0%,
+        rgba(12, 4, 28, 0.45) 40%,
+        rgba(14, 6, 34, 0.72) 100%
+    );
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+    border-top: none;
+}
+
+/* 顶部流光线 — 移除，边界不再确切 */
+#lisa-music-panel::before { display: none; }
+
+/* 环境光晕（左侧 Lisa 投射） */
+#lisa-music-panel::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 600px; height: 100%;
+    background: radial-gradient(ellipse at 20% 100%,
+        rgba(120, 60, 200, 0.18) 0%,
+        transparent 70%);
+    pointer-events: none;
+}
+
+/* ── 全宽频谱 canvas：占满整个面板高度，顶部渐隐 ── */
+#lisa-music-panel #audio-visualizer {
+    position: absolute;
+    bottom: 0; left: 0;
+    width: 100%; height: 100%;
+    opacity: 0.55;
+    pointer-events: none;
+    z-index: 0;
+    /* 顶部逐渐消失，跟面板背景融山 */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 45%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 45%);
+}
+
+/* ── 左占位（与 Lisa 画布对齐，确保唱片居中在 Lisa 脚下） ── */
+.lm-spacer {
+    flex-shrink: 0;
+    /* canvas_left(30) + canvas_width/2(270) - disc_radius(55) = 245px */
+    width: 245px;
+    pointer-events: none;
+}
+
+/* ── 唱片 ── */
+.lm-disc {
+    position: relative;
+    flex-shrink: 0;
+    width: 110px; height: 110px;
+    border-radius: 50%;
+    cursor: pointer;
+    z-index: 2;
+    margin-right: 28px;
+}
+.lm-disc:hover .disc-surface {
+    border-color: rgba(220, 160, 255, 0.55);
+}
+.lm-disc .disc-surface {
+    width: 100%; height: 100%;
+    border-radius: 50%;
+    background: radial-gradient(circle,
+        #2a1055 6%, #160728 20%,
+        #32125e 34%, #0d0520 72%);
+    border: 2px solid rgba(190, 130, 255, 0.35);
+    display: flex; justify-content: center; align-items: center;
+    animation: spin 8s linear infinite;
+    animation-play-state: paused;
+    box-shadow:
+        0 0 28px rgba(140, 60, 220, 0.4),
+        inset 0 0 18px rgba(100, 40, 180, 0.3);
+    transition: box-shadow 0.4s, border-color 0.4s;
+}
+.lm-disc.playing .disc-surface {
+    animation-play-state: running;
+    box-shadow:
+        0 0 42px rgba(160, 80, 255, 0.65),
+        0 0 80px rgba(140, 60, 220, 0.25),
+        inset 0 0 20px rgba(120, 50, 200, 0.4);
+}
+
+/* 唱片脉冲光环 */
+.lm-disc-pulse {
+    position: absolute;
+    inset: -8px;
+    border-radius: 50%;
+    border: 2px solid rgba(180, 100, 255, 0);
+    pointer-events: none;
+    animation: discPulse 2.2s ease-out infinite;
+    opacity: 0;
+}
+.lm-disc.playing .lm-disc-pulse {
+    border-color: rgba(180, 100, 255, 0.5);
+    opacity: 1;
+}
+@keyframes discPulse {
+    0%   { transform: scale(0.95); opacity: 0.8; }
+    100% { transform: scale(1.35); opacity: 0; }
+}
+
+/* 唱片中图标 */
+.roselia-icon {
+    width: 80%; height: 80%;
+    object-fit: cover;
+    border-radius: 50%;
+    opacity: 0.92;
+}
+
+/* ── 中间内容区 ── */
+.lm-center {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+    z-index: 2;
+    padding-right: 32px;
+}
+
+/* 曲名+歌手 */
+.lm-track { display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
+
+.lm-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #eddeff;
+    font-family: 'Segoe UI', 'Microsoft YaHei', system-ui, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 0 0 18px rgba(190, 110, 255, 0.6);
+    letter-spacing: 0.02em;
+}
+.lm-title.marquee {
+    animation: marqueeScroll 14s linear infinite;
+}
+@keyframes marqueeScroll {
+    0%   { transform: translateX(0); }
+    40%  { transform: translateX(-60%); }
+    60%  { transform: translateX(-60%); }
+    100% { transform: translateX(0); }
+}
+
+.lm-artist {
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: rgba(188, 155, 240, 0.65);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── 装饰线（代替进度条） ── */
+.lm-deco-line {
+    width: 48px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg,
+        rgba(160, 80, 255, 0.8) 0%,
+        rgba(220, 160, 255, 0.4) 100%);
+    box-shadow: 0 0 8px rgba(160, 80, 255, 0.4);
+    margin-top: 4px;
+}
+
+/* 控制按钮 */
+.lm-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.lm-btn {
+    background: none;
+    border: none;
+    color: rgba(210, 180, 255, 0.7);
+    cursor: pointer;
+    padding: 7px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+    pointer-events: auto;
+    position: relative;
+    z-index: 2;
+}
+.lm-btn svg { width: 20px; height: 20px; stroke-width: 2; }
+.lm-btn:hover {
+    color: #fff;
+    background: rgba(150, 70, 255, 0.2);
+    transform: scale(1.2);
+}
+.lm-btn:active { transform: scale(0.9); }
+
+/* 播放按钮：主按钮 */
+.lm-play {
+    width: 46px; height: 46px;
+    padding: 0;
+    color: #ddc0ff;
+    background: rgba(120, 50, 200, 0.32);
+    border: 1.5px solid rgba(175, 100, 255, 0.45);
+    box-shadow: 0 0 18px rgba(140, 60, 240, 0.25);
+}
+.lm-play svg { width: 18px; height: 18px; }
+.lm-play:hover {
+    background: rgba(155, 70, 250, 0.5);
+    border-color: rgba(210, 150, 255, 0.7);
+    box-shadow: 0 0 28px rgba(160, 80, 255, 0.5);
+    transform: scale(1.12);
+}
+
+/* ── 右侧：可视化竖条 + 标签 ── */
+.lm-right {
+    flex-shrink: 0;
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding-right: 28px;
+    z-index: 2;
+    border-left: 1px solid rgba(160, 100, 255, 0.12);
+    margin-left: 16px;
+    height: 100%;
+}
+
+.lm-vis-bars {
+    display: flex;
+    align-items: flex-end;
+    gap: 5px;
+    height: 60px;
+}
+.lm-vbar {
+    width: 5px;
+    min-height: 6px;
+    border-radius: 3px 3px 1px 1px;
+    background: linear-gradient(180deg,
+        rgba(220, 150, 255, 0.9) 0%,
+        rgba(140, 60, 220, 0.7) 100%);
+    box-shadow: 0 0 6px rgba(180, 100, 255, 0.4);
+    animation: visBar var(--dur, 0.8s) ease-in-out infinite alternate;
+    animation-delay: var(--delay, 0s);
+    height: 12px;
+}
+@keyframes visBar {
+    from { height: 6px;  opacity: 0.5; }
+    to   { height: var(--peak, 40px); opacity: 1; }
+}
+
+.lm-now-label {
+    font-size: 9px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(190, 150, 255, 0.45);
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    white-space: nowrap;
+}
+
+
 /* 对话气泡 */
 #live2d-bubble {
     position: absolute;
-    bottom: calc(100% - 20px);
-    left: 55%;
-    transform: translateX(-10%) scale(0.85);
+    bottom: 610px;   /* 紧靠 Lisa 头部上方；canvas bottom:192px + 头部≈420px */
+    left: 290px;     /* canvas左边30px+宽540px中心=300px，气泡稍靠右 */
+    transform: scale(0.85);
     transform-origin: bottom left;
     background: linear-gradient(135deg,
         rgba(255, 220, 245, 0.92) 0%,
@@ -51,7 +431,7 @@
 
 #live2d-bubble.visible {
     opacity: 1;
-    transform: translateX(-10%) scale(1);
+    transform: scale(1);
 }
 
 #live2d-bubble.bubble-pop {
@@ -59,9 +439,9 @@
 }
 
 @keyframes bubblePop {
-    0%   { transform: translateX(-10%) scale(0.7);  opacity: 0; }
-    60%  { transform: translateX(-10%) scale(1.06); opacity: 1; }
-    100% { transform: translateX(-10%) scale(1);    opacity: 1; }
+    0%   { transform: scale(0.7);  opacity: 0; }
+    60%  { transform: scale(1.06); opacity: 1; }
+    100% { transform: scale(1);    opacity: 1; }
 }
 
 /* 尾巴：左下角小角 */
@@ -124,12 +504,6 @@
     transition: opacity 0.4s ease, transform 0.4s ease;
 }
 
-#live2d-widget:not(.hidden) {
-    opacity: 1;
-    transform: translateY(0);
-    transition: opacity 0.4s ease, transform 0.4s ease;
-}
-
 /* ── Debug Overlay ── */
 #live2d-debug-svg {
     position: fixed;
@@ -172,7 +546,7 @@
 /* debug 切换按钮 */
 #live2d-debug-btn {
     position: fixed;
-    bottom: 8px;
+    bottom: 52px;
     left: 105px;
     z-index: 9002;
     background: rgba(0,0,0,0.6);

@@ -47,6 +47,14 @@ export function controlMedia(action) {
         .catch(e => console.error("Media Control Error:", e));
 }
 
+// 读取当前系统媒体信息（SMTC via Python winsdk）
+// 返回 { title, artist, albumTitle, thumbnail, state, stateCode, position, duration }
+export function fetchMediaStatus() {
+    return fetch(`${BACKEND_URL}/media/status`, { signal: AbortSignal.timeout(2000) })
+        .then(r => r.json())
+        .catch(() => null);
+}
+
 // 状态检查
 let backendWasOffline = true; // 假设启动时后端离线
 

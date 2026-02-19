@@ -3,7 +3,7 @@
 // ==========================================
 let globalAudioCanvas = null;
 let globalActx = null;
-let lastAudioData = new Array(5).fill(0); 
+let lastAudioData = new Array(48).fill(0); 
 
 function drawAudioFrame(audioArray) {
     if(!globalActx) return;
@@ -12,58 +12,76 @@ function drawAudioFrame(audioArray) {
     const h = globalAudioCanvas.height;
     globalActx.clearRect(0, 0, w, h);
 
-    // 可视化设置 (粗条)
-    const barCount = 5; 
-    const spacing = 4; // 稍微减少间距以更好地适应条形
+    // 密集条柱（全宽面板用 48 条）
+    const barCount = 48;
+    const spacing = 2;
     const barWidth = (w - (barCount - 1) * spacing) / barCount;
     
     let maxVal = 0;
+    const barVals = [];
 
     for(let i = 0; i < barCount; i++) {
-        // 频率映射: 专注于低音/中低音
-        // 将 5 个条映射到索引: 0, 1, 3, 5, 8 (更接近对数)
-        const indices = [0, 1, 3, 5, 8]; 
-        let idx = indices[i];
-        
-        // 左声道和右声道的总和
-        let rawVal = (audioArray[idx] || 0) + (audioArray[64 + idx] || 0); 
-        rawVal = rawVal * 0.5; // 平均值
+        // 对数频率映射：覆盖 0~63 频段
+        const logIdx = Math.floor(Math.pow(i / barCount, 1.4) * 63);
+        let rawVal = ((audioArray[logIdx] || 0) + (audioArray[64 + logIdx] || 0)) * 0.5;
 
-        // 平滑衰减
         if (rawVal > lastAudioData[i]) {
-            lastAudioData[i] = rawVal; 
+            lastAudioData[i] = rawVal;
         } else {
-            lastAudioData[i] = Math.max(0, lastAudioData[i] - 0.05); // 可见度衰减较慢
+            lastAudioData[i] = Math.max(0, lastAudioData[i] - 0.03);
         }
         
         const renderVal = lastAudioData[i];
+        barVals.push(renderVal);
         maxVal = Math.max(maxVal, renderVal);
 
-        // 始终绘制一条基线 (让我们知道它在那里)
-        const minHeight = 4;
+        const minH = 3;
+        let barH = renderVal * h * 3.8;
+        barH = Math.max(minH, Math.min(h * 0.96, barH));
 
-        if (renderVal > 0.0001 || true) { // 始终绘制内容
-            let barHeight = renderVal * h * 3.0; // 3倍增益
-            barHeight = Math.max(minHeight, barHeight); 
-            barHeight = Math.min(h, barHeight); 
+        const x = i * (barWidth + spacing);
+        const y = h - barH;
 
-            const x = i * (barWidth + spacing);
-            const y = h - barHeight;
+        // 中央偏亮的紫粉渐变，顶端透明消散
+        const prog = i / (barCount - 1);
+        const brightness = 1 - Math.abs(prog - 0.5) * 0.5;
+        const topAlpha   = (0.0 + renderVal * 0.7) * brightness;  // 顶端几乎透明
+        const botAlpha   = (0.5 + renderVal * 0.5) * brightness;
+        const grad = globalActx.createLinearGradient(x, y, x, y + barH);
+        grad.addColorStop(0,   `rgba(220, 140, 255, ${topAlpha})`);
+        grad.addColorStop(0.4, `rgba(190, 100, 255, ${(topAlpha + botAlpha) * 0.55})`);
+        grad.addColorStop(1,   `rgba(110, 40,  200, ${botAlpha})`);
+        globalActx.fillStyle = grad;
+        globalActx.fillRect(x, y, barWidth, barH);
 
-            // 霓虹青色
-            globalActx.fillStyle = `rgba(0, 210, 211, ${0.4 + renderVal * 0.6})`;
-            globalActx.fillRect(x, y, barWidth, barHeight);
-            
-            // 白色顶盖
-            globalActx.fillStyle = `rgba(255, 255, 255, 0.9)`;
-            globalActx.fillRect(x, y, barWidth, 3);
+        // 顶盖高光（仅高振幅可见）
+        if (renderVal > 0.08) {
+            globalActx.fillStyle = `rgba(255, 220, 255, ${renderVal * 0.55})`;
+            globalActx.fillRect(x, y, barWidth, 2);
         }
     }
+
     updateDiscRotation(maxVal);
+    updateCSSVisBars(barVals, maxVal);
+}
+
+// 把音频幅度映射到右侧 8 根 CSS 装饰条
+function updateCSSVisBars(barVals, maxVal) {
+    const bars = document.querySelectorAll('.lm-vbar');
+    if (!bars.length) return;
+    const n = bars.length;
+    const segSize = Math.floor(barVals.length / n);
+    bars.forEach((bar, i) => {
+        let avg = 0;
+        for (let k = i * segSize; k < (i + 1) * segSize; k++) avg += barVals[k] || 0;
+        avg /= segSize;
+        const px = Math.max(8, Math.min(60, avg * 180));
+        bar.style.setProperty('--peak', `${px}px`);
+    });
 }
 
 function updateDiscRotation(maxVal) {
-    const disc = document.querySelector('.album-cover');
+    const disc = document.querySelector('.lm-disc') || document.querySelector('.album-cover');
     if(disc) {
         if(maxVal > 0.01) disc.classList.add('playing');
         else disc.classList.remove('playing');

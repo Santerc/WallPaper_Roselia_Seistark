@@ -337,8 +337,49 @@
         const hidden = widget.classList.toggle('hidden');
         if (btn) btn.textContent = hidden ? '▲ LISA' : '▼ HIDE';
     }
-
     window.toggleLive2D = toggleLive2D;
+
+    // ── 音乐联动消息 ──────────────────────────────────────────
+    const MUSIC_PLAY_MSGS  = ['▶ 节奏来了！', '🎵 音乐又响起来了～', '♪ 继续听吧！'];
+    const MUSIC_PAUSE_MSGS = ['⏸ 先暂停一下？', '☕ 休息一下～', '🌸 歇一会儿？'];
+
+    /**
+     * 供外部（main.js）调用的音乐事件接口
+     * type: 'track_change' | 'play' | 'pause'
+     * info: { title, artist }
+     */
+    window.lmMusicEvent = function(type, info = {}) {
+        if (!modelInstanceRef) return;
+        const model = modelInstanceRef;
+        if (type === 'track_change') {
+            const t = (info.title || '').substring(0, 16) + ((info.title || '').length > 16 ? '…' : '');
+            const msgs = [
+                `🎵 "${t}"`,
+                `♪ 换歌了～\n${t}`,
+                `🎶 好听！`,
+            ];
+            showBubble(randomFrom(msgs), 4000);
+            motionLockUntil = Date.now() + 3000;
+            model.motion('happy');
+        } else if (type === 'play') {
+            showBubble(randomFrom(MUSIC_PLAY_MSGS), 2500);
+        } else if (type === 'pause') {
+            showBubble(randomFrom(MUSIC_PAUSE_MSGS), 2500);
+        }
+    };
+
+    // ── 设置曲目信息（外部调用，自动 marquee）──────────────────
+    window.lmSetTrack = function(title, artist) {
+        const titleEl  = document.getElementById('lm-title-text');
+        const artistEl = document.getElementById('lm-artist-text');
+        if (titleEl && title != null) {
+            titleEl.textContent = title;
+            titleEl.classList.toggle('marquee', title.length > 22);
+        }
+        if (artistEl && artist != null) {
+            artistEl.textContent = artist;
+        }
+    };
 
     // ── 等待 DOM 就绪后启动 ──────────────────────────────────────
     if (document.readyState === 'loading') {

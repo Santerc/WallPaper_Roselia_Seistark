@@ -4,17 +4,197 @@ import json
 import ctypes
 import subprocess
 import winreg
+import asyncio
+import base64
+import threading
+import time
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import mimetypes
+
+# ── Windows SMTC (System Media Transport Controls) ──────────────────────────
+# WinRT 要求运行在 STA（单线程公寓）线程上，不能直接在 Flask 路由里
+# new_event_loop()，必须在专用线程里初始化 COM 后再跑 asyncio。
+try:
+    from winsdk.windows.media.control import \
+        GlobalSystemMediaTransportControlsSessionManager as MediaManager
+    from winsdk.windows.storage.streams import DataReader, Buffer, InputStreamOptions
+    WINSDK_OK = True
+except ImportError:
+    WINSDK_OK = False
+    print('[WARN] winsdk not installed; run: pip install winsdk')
+
+# 全局缓存，后台线程写，Flask 路由读
+_smtc_cache: dict = {'error': 'initializing'}
+_smtc_lock  = threading.Lock()
+
+async def _smtc_poll_once():
+    """单次拉取 SMTC 数据，在专用 STA 线程中调用"""
+    try:
+        mgr = await MediaManager.request_async()
+        cur = mgr.get_current_session()
+        if not cur:
+            return {'error': 'no active media session'}
+
+        props    = await cur.try_get_media_properties_async()
+        playback = cur.get_playback_info()
+        timeline = cur.get_timeline_properties()
+
+        # 封面
+        thumb = None
+        try:
+            if props.thumbnail:
+                stream = await props.thumbnail.open_read_async()
+                sz  = stream.size
+                buf = Buffer(sz)
+                await stream.read_async(buf, sz, InputStreamOptions.READ_AHEAD)
+                reader = DataReader.from_buffer(buf)
+                raw    = bytearray(sz)
+                reader.read_bytes(raw)
+                thumb  = 'data:image/jpeg;base64,' + base64.b64encode(bytes(raw)).decode()
+        except Exception as te:
+            print(f'[SMTC] thumb: {te}')
+
+        try:
+            state_code = int(playback.playback_status)
+        except Exception:
+            state_code = 0
+        state_str = {0:'closed',1:'opened',2:'changing',
+                     3:'stopped',4:'playing',5:'paused'}.get(state_code, 'unknown')
+
+        pos, dur = 0.0, 0.0
+        try:
+            pos = timeline.position.total_seconds()
+            dur = timeline.max_seek_time.total_seconds()
+        except Exception:
+            pass
+
+        return {
+            'title':      props.title      or '',
+            'artist':     props.artist     or '',
+            'albumTitle': props.album_title or '',
+            'thumbnail':  thumb,
+            'state':      state_str,
+            'stateCode':  state_code,
+            'position':   round(pos, 2),
+            'duration':   round(dur, 2),
+        }
+    except Exception as e:
+        return {'error': str(e)}
+
+
+def _smtc_background_thread():
+    """
+    专用 STA 线程：用 ctypes 初始化 COM STA，
+    然后在此线程的 asyncio 事件循环中每 2 秒轮询 SMTC。
+    """
+    global _smtc_cache
+    # 初始化 COM STA（COINIT_APARTMENTTHREADED = 0x2）
+    COINIT_APARTMENTTHREADED = 0x2
+    hr = ctypes.windll.ole32.CoInitializeEx(None, COINIT_APARTMENTTHREADED)
+    if hr not in (0, 1):   # S_OK or S_FALSE(already init)
+        print(f'[SMTC] CoInitializeEx failed: hr=0x{hr:08x}')
+
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
+
+    async def run():
+        global _smtc_cache
+        while True:
+            result = await _smtc_poll_once()
+            with _smtc_lock:
+                _smtc_cache = result
+            await asyncio.sleep(2)
+
+    try:
+        loop.run_until_complete(run())
+    finally:
+        ctypes.windll.ole32.CoUninitialize()
+
+if WINSDK_OK:
+    _t = threading.Thread(target=_smtc_background_thread, daemon=True, name='smtc-poll')
+    _t.start()
+    print('[SMTC] 后台轮询线程已启动')
+
+# ── 窗口标题回退：解析常见播放器的窗口标题 ──────────────────────────────────
+# 当 SMTC 不可用时（老版本播放器未注册 SMTC），通过枚举窗口标题提取曲目信息
+
+import re as _re
+
+# 播放器进程名 → 解析规则
+# 格式: (regex, source_tag)
+# cloudmusic 标题两种格式：
+#   "曲名 - 歌手 - 网易云音乐"（暂停时）
+#   "曲名 - 歌手"              （播放时）
+_PLAYER_RULES = {
+    'cloudmusic': (_re.compile(r'^(.+?)\s*-\s*(.+?)(?:\s*-\s*网易云音乐)?$'), 'netease'),
+    'wmsxwd':     (_re.compile(r'^(.+?)\s*[-–]\s*(.+)'),                       'wmsxwd'),
+    'qqmusic':    (_re.compile(r'^(.+?)\s*-\s*(.+?)(?:\s*-\s*QQ音乐)?$'),      'qqmusic'),
+    'kugou':      (_re.compile(r'^(.+?)\s*-\s*(.+?)(?:\s*-\s*酷狗.*)?$'),      'kugou'),
+    'music':      (_re.compile(r'^(.+?)\s*-\s*(.+)'),                          'generic'),
+}
+
+# 这些标题不含曲目信息，直接过滤掉
+_TITLE_BLACKLIST = {'网易云音乐', 'QQ音乐', '酷狗音乐', '桌面歌词', 'wmsxwd', ''}
+
+def _get_info_from_window_title():
+    """枚举所有窗口，匹配已知播放器进程，解析标题"""
+    import ctypes as _ct
+    EnumWindows      = _ct.windll.user32.EnumWindows
+    GetWindowText    = _ct.windll.user32.GetWindowTextW
+    GetWindowTextLen = _ct.windll.user32.GetWindowTextLengthW
+    IsWindowVisible  = _ct.windll.user32.IsWindowVisible
+    GetWindowThreadProcessId = _ct.windll.user32.GetWindowThreadProcessId
+
+    results = []
+
+    @_ct.WINFUNCTYPE(_ct.c_bool, _ct.c_void_p, _ct.c_long)
+    def callback(hwnd, _):
+        if not IsWindowVisible(hwnd):
+            return True
+        length = GetWindowTextLen(hwnd)
+        if length == 0:
+            return True
+        buf = _ct.create_unicode_buffer(length + 1)
+        GetWindowText(hwnd, buf, length + 1)
+        title = buf.value.strip()
+        if not title:
+            return True
+
+        # 获取 PID → 进程名
+        pid = _ct.c_ulong()
+        GetWindowThreadProcessId(hwnd, _ct.byref(pid))
+        try:
+            proc = psutil.Process(pid.value)
+            pname = proc.name().lower().replace('.exe', '')
+        except Exception:
+            return True
+
+        for key, (pat, src) in _PLAYER_RULES.items():
+            if key in pname:
+                if title in _TITLE_BLACKLIST:
+                    return True
+                m = pat.match(title)
+                if m:
+                    results.append({
+                        'title':  m.group(1).strip(),
+                        'artist': m.group(2).strip(),
+                        'source': src,
+                        'raw':    title,
+                    })
+                    return True   # 找到一个就停止，避免 generic 规则重复匹配
+        return True
+
+    EnumWindows(callback, 0)
+    return results[0] if results else None
+
+
 try:
     import psutil
 except ImportError:
     print("Installing psutil...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "psutil"])
     import psutil
-import time
-import threading
 from datetime import datetime
 
 # PyQt Imports for Integrated GUI Support
@@ -255,18 +435,49 @@ def set_autostart(enable):
     except Exception as e:
         print(f"Registry error: {e}")
 
-# Media Keys using ctypes (Low level Windows API)
+# ── 媒体控制：SendInput + KEYEVENTF_EXTENDEDKEY ───────────────────────────────
+VK_MEDIA_PLAY_PAUSE = 0xB3
 VK_MEDIA_NEXT_TRACK = 0xB0
 VK_MEDIA_PREV_TRACK = 0xB1
-VK_MEDIA_PLAY_PAUSE = 0xB3
-KEYEVENTF_KEYUP = 0x0002
+KEYEVENTF_KEYUP      = 0x0002
+KEYEVENTF_EXTENDEDKEY = 0x0001
+INPUT_KEYBOARD       = 1
 
-def press_media_key(vk_code):
-    user32 = ctypes.windll.user32
-    # Press
-    user32.keybd_event(vk_code, 0, 0, 0)
-    # Release
-    user32.keybd_event(vk_code, 0, KEYEVENTF_KEYUP, 0)
+class KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ('wVk',         ctypes.c_ushort),
+        ('wScan',       ctypes.c_ushort),
+        ('dwFlags',     ctypes.c_ulong),
+        ('time',        ctypes.c_ulong),
+        ('dwExtraInfo', ctypes.POINTER(ctypes.c_ulong)),
+    ]
+
+class _INPUT_UNION(ctypes.Union):
+    _fields_ = [('ki', KEYBDINPUT)]
+
+class INPUT(ctypes.Structure):
+    _fields_ = [('type', ctypes.c_ulong), ('union', _INPUT_UNION)]
+
+_user32 = ctypes.windll.user32
+
+def send_media_key(vk):
+    """用 SendInput + KEYEVENTF_EXTENDEDKEY 发送媒体键（不依赖焦点）"""
+    def _make(flags):
+        inp = INPUT()
+        inp.type = INPUT_KEYBOARD
+        inp.union.ki.wVk = vk
+        inp.union.ki.wScan = 0
+        inp.union.ki.dwFlags = flags
+        inp.union.ki.time = 0
+        inp.union.ki.dwExtraInfo = ctypes.pointer(ctypes.c_ulong(0))
+        return inp
+    press   = _make(KEYEVENTF_EXTENDEDKEY)
+    release = _make(KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP)
+    arr = (INPUT * 2)(press, release)
+    _user32.SendInput(2, arr, ctypes.sizeof(INPUT))
+
+
+
 
 # ================= Routes =================
 
@@ -295,16 +506,65 @@ def update_config():
     set_autostart(data.get('autoStart', False))
     return jsonify({"success": True})
 
+@app.route('/media/status', methods=['GET'])
+def media_status():
+    """返回当前系统媒体信息：优先 SMTC，回退到窗口标题解析"""
+    # ── 1. 尝试 SMTC（winsdk 后台缓存） ──────────────────
+    if WINSDK_OK:
+        with _smtc_lock:
+            cached = dict(_smtc_cache)
+        if 'error' not in cached:
+            cached['source'] = 'smtc'
+            return jsonify(cached)
+
+    # ── 2. 回退：窗口标题解析 ─────────────────────────────
+    info = _get_info_from_window_title()
+    if info:
+        info['source']    = info.get('source', 'window_title')
+        info['state']     = 'playing'
+        info['stateCode'] = 4
+        info['thumbnail'] = None
+        # 用本地计时器估算进度（曲名变化时服务端重置计时）
+        title_key = info.get('title', '')
+        now = time.time()
+        if not hasattr(media_status, '_wt_title') or media_status._wt_title != title_key:
+            media_status._wt_title   = title_key
+            media_status._wt_start   = now
+        elapsed = now - media_status._wt_start
+        info['position'] = round(elapsed, 2)
+        info['duration'] = 0.0   # 窗口标题无法得知总时长
+        return jsonify(info)
+
+    # ── 3. 均无数据 ────────────────────────────────────────
+    smtc_err = _smtc_cache.get('error', 'smtc not available') if WINSDK_OK else 'winsdk not installed'
+    return jsonify({'error': f'no media found (smtc: {smtc_err}, window: no match)'})
+
+
+@app.route('/media/debug', methods=['GET'])
+def media_debug():
+    """诊断接口：返回 SMTC 缓存 + 窗口标题扫描结果"""
+    info = _get_info_from_window_title()
+    return jsonify({
+        'smtc_cache':    _smtc_cache if WINSDK_OK else 'winsdk not installed',
+        'window_title':  info,
+    })
+
+
+_ACTION_VK = {
+    'play':  VK_MEDIA_PLAY_PAUSE,
+    'next':  VK_MEDIA_NEXT_TRACK,
+    'prev':  VK_MEDIA_PREV_TRACK,
+}
+
 @app.route('/media/<action>', methods=['GET'])
 def media_control(action):
-    print(f"Media action: {action}")
-    if action == 'play':
-        press_media_key(VK_MEDIA_PLAY_PAUSE)
-    elif action == 'next':
-        press_media_key(VK_MEDIA_NEXT_TRACK)
-    elif action == 'prev':
-        press_media_key(VK_MEDIA_PREV_TRACK)
-    return jsonify({"success": True})
+    vk = _ACTION_VK.get(action)
+    if vk:
+        send_media_key(vk)
+        print(f'[MEDIA] keybd_event vk=0x{vk:02X} action={action}')
+    else:
+        print(f'[MEDIA] unknown action: {action}')
+    return jsonify({'success': True, 'action': action})
 
 @app.route('/launch', methods=['GET'])
 def launch_app():

@@ -3,7 +3,7 @@ import { logDebug, showToast } from './utils.js';
 import { initClock } from './clock.js';
 import { toggleDock, renderDock, toggleSettingsModal, launchApp, launchMusicApp } from './dock.js';
 import { renderSettingsList, addNewAppSlot, removeAppSlot, openEditor, closeEditor, saveEditor, pickFile } from './apps.js';
-import { fetchConfig, saveConfigToBackend, checkBackendStatus, systemStopServer, controlMedia } from './backend.js';
+import { fetchConfig, saveConfigToBackend, checkBackendStatus, systemStopServer, controlMedia, fetchMediaStatus } from './backend.js';
 import { initAnimation, updateSakuraCount } from './animation.js';
 import { initAudio } from './audio.js';
 import { initStats } from './stats.js';
@@ -191,6 +191,95 @@ window.wallpaperPropertyListener = {
         }
     }
 };
+
+// ==========================================
+// 媒体信息轮询（通过 Python 后端读取 Windows SMTC）
+// 每 2s 调用 /media/status，无需 WE 媒体集成权限
+// ==========================================
+(function initMediaPolling() {
+    const dbgEl = document.getElementById('media-dbg');
+    function log(tag, msg) {
+        const ts = new Date().toISOString().substr(11, 8);
+        const line = `[${ts}][${tag}] ${msg}`;
+        console.log(line);
+        if (dbgEl) { dbgEl.textContent += '\n' + line; dbgEl.scrollTop = dbgEl.scrollHeight; }
+    }
+
+    function el(id) { return document.getElementById(id); }
+    function fmtTime(sec) {
+        if (!isFinite(sec) || sec < 0) return '0:00';
+        return `${Math.floor(sec/60)}:${String(Math.floor(sec%60)).padStart(2,'0')}`;
+    }
+
+    // 播放状态（进度条已移除，只保留 playing 旗标供图标/唱片动画使用）
+    let _playing = false;
+    let _lastTitle = '', _lastThumb = '';
+    let _trackInitialized = false; // 首次拿到曲名不触发换曲动画
+
+    // 进度条已移除，此处保留空函数避免下方 applyMedia 报错
+    function applyProgress() {}
+
+    // ── 模拟按钮（debug 用） ──────────────────────────────
+    window._dbgSimMedia = function() {
+        log('SIM', '手动模拟...');
+        applyMedia({ title:'Test Song', artist:'Roselia', state:'playing', stateCode:4,
+                     position:0, duration:0, thumbnail: null });
+    };
+
+    function applyMedia(d) {
+        // 曲名 / 艺术家
+        if (d.title && d.title !== _lastTitle) {
+            const isRealSwitch = _trackInitialized; // 非首次才触发换曲动画
+            _lastTitle = d.title;
+            _trackInitialized = true;
+            if (typeof window.lmSetTrack === 'function')
+                window.lmSetTrack(d.title, d.artist || '');
+            if (isRealSwitch && typeof window.lmMusicEvent === 'function')
+                window.lmMusicEvent('track_change', { title: d.title, artist: d.artist });
+            log('TRACK', `${d.title} — ${d.artist}`);
+        }
+
+        // 专辑封面
+        if (d.thumbnail && d.thumbnail !== _lastThumb) {
+            _lastThumb = d.thumbnail;
+            const img = document.querySelector('.lm-disc .disc-surface img');
+            if (img) img.src = d.thumbnail;
+            log('THUMB', `封面已更新 (${d.thumbnail.length} chars)`);
+        }
+
+        // 播放 / 暂停
+        const playing = (d.state === 'playing' || d.stateCode === 4);
+        if (playing !== _playing) {
+            _playing = playing;
+            const icon = el('lm-play-icon');
+            if (icon) icon.innerHTML = playing
+                ? '<rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect>'
+                : '<polygon points="5 3 19 12 5 21 5 3"></polygon>';
+            document.querySelectorAll('.lm-disc .disc-surface')
+                .forEach(disc => disc.style.animationPlayState = playing ? 'running' : 'paused');
+            // Live2D 播放/暂停反应
+            if (typeof window.lmMusicEvent === 'function')
+                window.lmMusicEvent(playing ? 'play' : 'pause');
+            log('STATE', d.state);
+        }
+    }
+
+    // ── 2s 轮询 ──────────────────────────────────────────
+    async function poll() {
+        try {
+            const data = await fetchMediaStatus();
+            if (!data)              { log('POLL', '后端无响应（后端未启动？）'); return; }
+            if (data.error)         { log('POLL', `后端错误: ${data.error}`); return; }
+            applyMedia(data);
+        } catch(e) {
+            log('POLL', `fetch 失败: ${e.message}`);
+        }
+    }
+
+    log('POLL', '媒体轮询已启动 (2s 间隔)，通过后端读取 Windows SMTC...');
+    poll();
+    setInterval(poll, 2000);
+})();
 
 // Close Backend Modal
 function closeBackendModal() {

@@ -6,6 +6,7 @@
   "preview": "picture/preview.png",
   "general": {
     "supportsaudioprocessing": true,
+    "supportsMediaIntegration": true,
     "properties": {
       "bgm_vol": { "text": "BGM Volume", "type": "slider", "min": 0, "max": 100, "value": 30 },
       "sakura_count": { "text": "Sakura Particles", "type": "slider", "min": 0, "max": 200, "value": 60 },

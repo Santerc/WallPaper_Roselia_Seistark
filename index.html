@@ -13,13 +13,97 @@
 
     <div id="bg-layer"></div>
 
-    <!-- Live2D 人物小部件 -->
+    <!-- Live2D + 音乐联合部件（全宽底栏） -->
     <div id="live2d-widget">
         <div id="live2d-bubble"></div>
         <canvas id="live2d-canvas"></canvas>
+
+        <!-- 全宽音乐台 -->
+        <div id="lisa-music-panel">
+            <!-- 频谱 canvas（全宽背景层） -->
+            <canvas id="audio-visualizer" width="1600" height="192"></canvas>
+
+            <!-- 左侧占位，与 Lisa canvas 对齐 -->
+            <div class="lm-spacer"></div>
+
+            <!-- 唱片（从 Lisa 脚下探出） -->
+            <div class="lm-disc" id="album-art" onclick="launchMusicApp()" title="打开音乐播放器">
+                <div class="lm-disc-pulse"></div>
+                <div class="disc-surface">
+                    <img src="assets/roselia.png" alt="Roselia" class="roselia-icon">
+                </div>
+            </div>
+
+            <!-- 中部：曲名 + 控件 -->
+            <div class="lm-center">
+                <div class="lm-track">
+                    <span class="lm-title" id="lm-title-text">Now Playing</span>
+                    <span class="lm-artist" id="lm-artist-text">Roselia</span>
+                    <div class="lm-deco-line"></div>
+                </div>
+                <div class="lm-controls">
+                    <button class="lm-btn" onclick="mediaControl('prev')" title="上一首">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
+                    </button>
+                    <button class="lm-btn lm-play" id="lm-play-btn" onclick="mediaControl('play')" title="播放/暂停">
+                        <svg id="lm-play-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                    </button>
+                    <button class="lm-btn" onclick="mediaControl('next')" title="下一首">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 右侧：装饰性频谱竖条 + 标签 -->
+            <div class="lm-right">
+                <div class="lm-vis-bars" id="lm-vis-bars">
+                    <div class="lm-vbar" style="--dur:0.55s;--delay:0.00s;--peak:52px"></div>
+                    <div class="lm-vbar" style="--dur:0.70s;--delay:0.07s;--peak:38px"></div>
+                    <div class="lm-vbar" style="--dur:0.48s;--delay:0.14s;--peak:60px"></div>
+                    <div class="lm-vbar" style="--dur:0.82s;--delay:0.05s;--peak:30px"></div>
+                    <div class="lm-vbar" style="--dur:0.60s;--delay:0.20s;--peak:48px"></div>
+                    <div class="lm-vbar" style="--dur:0.45s;--delay:0.10s;--peak:56px"></div>
+                    <div class="lm-vbar" style="--dur:0.75s;--delay:0.18s;--peak:36px"></div>
+                    <div class="lm-vbar" style="--dur:0.52s;--delay:0.03s;--peak:44px"></div>
+                </div>
+                <span class="lm-now-label">♪ NOW PLAYING</span>
+            </div>
+        </div>
     </div>
     <button id="live2d-toggle" onclick="toggleLive2D()">▼ HIDE</button>
-    
+
+    <!-- ── 媒体集成 Debug 面板（调试用，确认正常后可隐藏） ── -->
+    <div id="media-dbg" style="
+        position:fixed; top:8px; right:8px; z-index:99999;
+        background:rgba(0,0,0,0.88); color:#0f0;
+        font:11px/1.5 monospace; padding:8px 12px;
+        border:1px solid #0f04; border-radius:6px;
+        max-width:460px; max-height:380px; overflow-y:auto;
+        pointer-events:auto; white-space:pre-wrap;
+    "><b style='color:#0ff'>▶ MEDIA DEBUG</b>  <span style='color:#ff0'>← 需先在 WE 设置里开启媒体集成</span>
+
+<span style='color:#fa0'>☑ WE检查清单：</span>
+  1. WE 主界面 → 齿轮图标 → 设置 (Settings)
+  2. “一般 (General)” 标签下找
+     “允许媒体集成 / Media Integration”并开启
+  3. 重新加载壁纸 (Reload) 册册
+  4. 用任意播放器播放音乐再试
+
+<span style='color:#0f0'>[init] 等待 WE API...</span>
+    </div>
+    <div style="position:fixed; top:8px; right:474px; z-index:99999; display:flex; flex-direction:column; gap:4px;">
+        <button onclick="document.getElementById('media-dbg').style.display='none'" style="
+            background:rgba(0,0,0,0.7); border:1px solid #0f04;
+            color:#0f0; font:10px monospace; padding:2px 8px;
+            border-radius:4px; cursor:pointer;
+        ">✕ close</button>
+        <button onclick="window._dbgSimMedia && window._dbgSimMedia()" style="
+            background:rgba(0,60,0,0.8); border:1px solid #0f08;
+            color:#0f0; font:10px monospace; padding:2px 8px;
+            border-radius:4px; cursor:pointer;
+        ">▶ 模拟</button>
+    </div>
+
     <canvas id="sakura-canvas"></canvas>
 
     <!-- System Stats -->
@@ -155,30 +239,7 @@
         </div>
     </div>
 
-    <!-- 音乐控件保持位置 -->
-    <div class="music-widget">
-        <!-- Visualizer Canvas -->
-        <canvas id="audio-visualizer" width="120" height="40"></canvas>
-        
-        <div class="album-cover" id="album-art" onclick="launchMusicApp()">
-            <!-- Roselia Icon Layer -->
-            <div class="disc-surface">
-                <img src="assets/roselia.png" alt="Roselia" class="roselia-icon">
-            </div>
-        </div>
-        
-        <div class="controls">
-            <button class="ctrl-btn" onclick="mediaControl('prev')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="19 20 9 12 19 4 19 20"></polygon><line x1="5" y1="19" x2="5" y2="5"></line></svg>
-            </button>
-            <button class="ctrl-btn" onclick="mediaControl('play')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-            </button>
-            <button class="ctrl-btn" onclick="mediaControl('next')">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 4 15 12 5 20 5 4"></polygon><line x1="19" y1="5" x2="19" y2="19"></line></svg>
-            </button>
-        </div>
-    </div>
+    <!-- 音乐控件已移入 #live2d-widget / #lisa-music-panel -->
 
     <div class="modal-overlay" id="settings-modal">
         <div class="modal-window">
