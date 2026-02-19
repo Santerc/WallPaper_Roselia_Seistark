@@ -36,8 +36,8 @@ function drawAudioFrame(audioArray) {
         maxVal = Math.max(maxVal, renderVal);
 
         const minH = 3;
-        let barH = renderVal * h * 3.8;
-        barH = Math.max(minH, Math.min(h * 0.96, barH));
+        let barH = renderVal * h * 5.0;
+        barH = Math.max(minH, Math.min(h * 0.98, barH));
 
         const x = i * (barWidth + spacing);
         const y = h - barH;
@@ -54,10 +54,19 @@ function drawAudioFrame(audioArray) {
         globalActx.fillStyle = grad;
         globalActx.fillRect(x, y, barWidth, barH);
 
-        // 顶盖高光（仅高振幅可见）
-        if (renderVal > 0.08) {
-            globalActx.fillStyle = `rgba(255, 220, 255, ${renderVal * 0.55})`;
+        // 顶盖高光（突出上界，低振幅也显示）
+        if (renderVal > 0.02) {
+            // 白色亮线
+            globalActx.fillStyle = `rgba(255, 230, 255, ${0.3 + renderVal * 0.7})`;
             globalActx.fillRect(x, y, barWidth, 2);
+            // 顶端额外辉光
+            if (renderVal > 0.15) {
+                const glow = globalActx.createLinearGradient(x, y - 8, x, y + 4);
+                glow.addColorStop(0, 'rgba(255, 180, 255, 0)');
+                glow.addColorStop(1, `rgba(240, 160, 255, ${renderVal * 0.5})`);
+                globalActx.fillStyle = glow;
+                globalActx.fillRect(x - 1, y - 8, barWidth + 2, 10);
+            }
         }
     }
 

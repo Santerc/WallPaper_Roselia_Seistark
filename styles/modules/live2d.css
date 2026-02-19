@@ -16,11 +16,12 @@
 #live2d-canvas {
     position: absolute;
     left: 30px;
-    bottom: 192px;        /* 面板高度 */
+    bottom: 192px;        /* 人物固定在原始面板高度处 */
     width: 540px;
-    height: calc(100% - 192px); /* ≈ 588px */
+    height: calc(100% - 192px);
     pointer-events: auto;
     cursor: pointer;
+    z-index: 1;           /* 高于 audio-visualizer(z:0)，人物在频谱之上 */
 }
 
 /* ── 对话气泡：Lisa 头部右上方 ── */
@@ -128,7 +129,7 @@
 #lisa-music-panel {
     position: absolute;
     bottom: 0; left: 0; right: 0;
-    height: 192px;
+    height: 280px;
     display: flex;
     align-items: center;
     gap: 0;
@@ -170,9 +171,9 @@
     opacity: 0.55;
     pointer-events: none;
     z-index: 0;
-    /* 顶部逐渐消失，跟面板背景融山 */
-    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 45%);
-    mask-image: linear-gradient(to bottom, transparent 0%, black 45%);
+    /* 顶部轻微消散，突出条柱上界 */
+    -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
+    mask-image: linear-gradient(to bottom, transparent 0%, black 18%);
 }
 
 /* ── 左占位（与 Lisa 画布对齐，确保唱片居中在 Lisa 脚下） ── */
