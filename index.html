@@ -4,10 +4,21 @@
     <meta charset="UTF-8">
     <title>Liquid Dream Interface</title>
     <link rel="stylesheet" href="styles/main.css">
+    <!-- Live2D 依赖库 (CDN) -->
+    <script src="https://cdn.jsdelivr.net/npm/pixi.js@6/dist/browser/pixi.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
 </head>
 <body>
 
     <div id="bg-layer"></div>
+
+    <!-- Live2D 人物小部件 -->
+    <div id="live2d-widget">
+        <div id="live2d-bubble"></div>
+        <canvas id="live2d-canvas"></canvas>
+    </div>
+    <button id="live2d-toggle" onclick="toggleLive2D()">▼ HIDE</button>
     
     <canvas id="sakura-canvas"></canvas>
 
@@ -283,6 +294,7 @@
         };
     </script>
     <script type="module" src="scripts/main.js"></script>
+    <script src="scripts/live2d.js"></script>
     <script>
         // Inline fail-safe check
         window.addEventListener('load', function() {

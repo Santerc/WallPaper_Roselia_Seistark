@@ -1,0 +1,42 @@
+{
+  "version": "Live2D Model Setting File 1.0",
+  "model": "lisa_event284.moc",
+  "textures": [
+    "texture_00.png",
+    "texture_01.png"
+  ],
+  "physics": "lisa_event284.physics.json",
+  "motions": {
+    "idle": [
+      { "file": "idle01.mtn" }
+    ],
+    "happy": [
+      { "file": "smile01.mtn" },
+      { "file": "smile02.mtn" }
+    ],
+    "tap_body": [
+      { "file": "smile01.mtn" },
+      { "file": "smile02.mtn" },
+      { "file": "smile03.mtn" }
+    ],
+    "angry": [
+      { "file": "angry01.mtn" }
+    ],
+    "cry": [
+      { "file": "cry01.mtn" }
+    ],
+    "serious": [
+      { "file": "serious01.mtn" }
+    ],
+    "surprised": [
+        { "file": "surprised01.mtn" }
+    ],
+    "wink": [
+        { "file": "wink01.mtn" }
+    ],
+    "sad": [
+        { "file": "sad01.mtn" }
+    ]
+
+  }
+}

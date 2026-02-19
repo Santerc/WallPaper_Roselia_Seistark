@@ -1,0 +1,157 @@
+/* ================= Live2D Widget ================= */
+
+#live2d-widget {
+    position: fixed;
+    bottom: 0;
+    left: 20px;
+    width: 380px;
+    height: 600px;
+    z-index: 150;
+    pointer-events: none;
+    user-select: none;
+}
+
+#live2d-canvas {
+    width: 100%;
+    height: 100%;
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+/* 对话气泡 */
+#live2d-bubble {
+    position: absolute;
+    bottom: calc(100% - 30px);
+    left: 50%;
+    transform: translateX(-20%);
+    background: rgba(15, 10, 40, 0.82);
+    border: 1px solid rgba(160, 130, 255, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-radius: 14px;
+    padding: 10px 16px;
+    color: #d4c8ff;
+    font-size: 12px;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    white-space: nowrap;
+    max-width: 220px;
+    white-space: normal;
+    line-height: 1.5;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    box-shadow: 0 4px 20px rgba(100, 60, 200, 0.25);
+}
+
+#live2d-bubble.visible {
+    opacity: 1;
+}
+
+#live2d-bubble::after {
+    content: '';
+    position: absolute;
+    bottom: -8px;
+    left: 30px;
+    width: 14px;
+    height: 8px;
+    background: rgba(15, 10, 40, 0.82);
+    clip-path: polygon(0 0, 100% 0, 50% 100%);
+    border-left: 1px solid rgba(160, 130, 255, 0.45);
+    border-right: 1px solid rgba(160, 130, 255, 0.45);
+}
+
+/* 隐藏/显示切换按钮 */
+#live2d-toggle {
+    position: fixed;
+    bottom: 8px;
+    left: 20px;
+    z-index: 155;
+    background: rgba(15, 10, 40, 0.6);
+    border: 1px solid rgba(160, 130, 255, 0.3);
+    border-radius: 20px;
+    color: rgba(180, 160, 255, 0.7);
+    font-size: 10px;
+    padding: 3px 10px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.3s ease;
+    letter-spacing: 0.05em;
+}
+
+#live2d-toggle:hover {
+    background: rgba(100, 60, 200, 0.3);
+    color: #d4c8ff;
+    border-color: rgba(160, 130, 255, 0.6);
+}
+
+/* 隐藏状态 */
+#live2d-widget.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(30px);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+#live2d-widget:not(.hidden) {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+/* ── Debug Overlay ── */
+#live2d-debug-svg {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    pointer-events: none;
+    z-index: 9000;
+    display: none;
+}
+#live2d-debug-svg.active { display: block; }
+
+#live2d-debug-panel {
+    position: fixed;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.75);
+    color: #0ff;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 6px 12px;
+    border: 1px solid #0ff4;
+    border-radius: 8px;
+    pointer-events: none;
+    z-index: 9001;
+    display: none;
+    white-space: pre;
+    line-height: 1.6;
+}
+#live2d-debug-panel.active { display: block; }
+
+/* debug 辅助线颜色 */
+.dbg-line   { stroke: #ff0; stroke-width: 1.5; stroke-dasharray: 6,3; }
+.dbg-mouse  { fill: #f0f; }
+.dbg-head   { fill: #0ff; }
+.dbg-canvas { fill: none; stroke: #0f0; stroke-width: 1; stroke-dasharray: 4,4; }
+
+/* debug 切换按钮 */
+#live2d-debug-btn {
+    position: fixed;
+    bottom: 8px;
+    left: 105px;
+    z-index: 9002;
+    background: rgba(0,0,0,0.6);
+    border: 1px solid #0ff4;
+    border-radius: 20px;
+    color: #0ff8;
+    font-size: 10px;
+    padding: 3px 10px;
+    cursor: pointer;
+    pointer-events: auto;
+    transition: all 0.3s;
+    letter-spacing: 0.05em;
+}
+#live2d-debug-btn:hover { background: rgba(0,200,200,0.2); color: #0ff; }

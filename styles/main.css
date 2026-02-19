@@ -14,6 +14,7 @@
 @import url('modules/dock.css');
 @import url('modules/music.css');
 @import url('modules/settings.css');
+@import url('modules/live2d.css');
 
 /* Modal Styles */
 .modal {
