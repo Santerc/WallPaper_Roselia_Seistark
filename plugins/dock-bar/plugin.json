@@ -1,0 +1,17 @@
+{
+  "id": "com.internal.dock",
+  "name": "App Dock",
+  "version": "1.0.0",
+  "description": "App launcher dock",
+  "type": "widget",
+  "entry": {
+    "frontend": "index.js"
+  },
+  "defaultPosition": {
+      "x": 800,
+      "y": 60,
+      "width": 100,
+      "height": 100
+  },
+  "capabilities": ["widget"]
+}

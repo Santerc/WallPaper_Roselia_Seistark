@@ -56,14 +56,15 @@ export const PluginAPI = {
     /**
      * Initialize all plugins
      * @param {Array} manifestList - List of loaded plugin manifests
+     * @param {Object} context - Shared context (e.g. backendUrl)
      */
-    initPlugins: async (manifestList) => {
+    initPlugins: async (manifestList, context = {}) => {
         for (const manifest of manifestList) {
             const Impl = registeredPlugins.get(manifest.id);
             if (Impl) {
                 try {
-                    // Create instance
-                    const instance = new Impl(manifest);
+                    // Create instance with manifest AND context
+                    const instance = new Impl(manifest, context);
                     pluginInstances.set(manifest.id, instance);
                     
                     // Mount if it's a widget

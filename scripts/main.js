@@ -6,7 +6,7 @@ import { renderSettingsList, addNewAppSlot, removeAppSlot, openEditor, closeEdit
 import { fetchConfig, saveConfigToBackend, checkBackendStatus, systemStopServer, controlMedia } from './backend.js';
 import { initAnimation, updateSakuraCount } from './animation.js';
 import { initAudio } from './audio.js';
-import { initStats } from './stats.js';
+// import { initStats } from './stats.js'; // REMOVED: Migrated to Plugin
 import { initMemos, addNewMemo as addNewMemoAction, openMemoEditor, toggleMemoStatus, requestDeleteMemo, cancelDeleteMemo, confirmDeleteMemo, loadMemos } from './memos.js';
 import { initGoals, addGoal, toggleGoal, deleteGoal } from './goals.js';
 import { togglePomodoro, initPomodoro } from './pomodoro.js';
@@ -43,7 +43,7 @@ async function initPluginSystem() {
         }
         
         // Init Plugins
-        await PluginAPI.initPlugins(plugins);
+        await PluginAPI.initPlugins(plugins, { backendUrl: BACKEND_URL });
         
         // Init Drag Manager
         dragManager = new PluginDragManager();
@@ -131,7 +131,9 @@ async function loadConfigToUI() {
         }
 
         // 更新全局 UI
-        try { renderDock(); } catch(e) { console.error("Dock Render fail", e); }
+        // try { renderDock(); } catch(e) { console.error("Dock Render fail", e); } // REMOVED: Migrated to Plugin
+        // Trigger generic config updated event for plugins
+        document.dispatchEvent(new Event('configUpdated'));
 
         // 更新设置 UI
         renderSettingsList();
@@ -369,10 +371,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (dir.endsWith('\\')) dir = dir.slice(0, -1);
     window.wallpaperDir = dir;
 
-    initClock();
+    // initClock(); // Migrated to Plugin
     initAnimation();
     initAudio();
-    initStats();
+    // initStats(); // REMOVED: Migrated to Plugin
     initScrollFix();
     initPomodoro();
     loadConfigToUI();

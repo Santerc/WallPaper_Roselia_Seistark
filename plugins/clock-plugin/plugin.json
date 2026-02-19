@@ -8,10 +8,10 @@
     "frontend": "index.js"
   },
   "defaultPosition": {
-    "x": 100,
+    "x": 960,
     "y": 100,
-    "width": 300,
-    "height": 150
+    "width": 800,
+    "height": 400
   },
   "capabilities": ["widget"]
 }

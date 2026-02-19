@@ -1,8 +1,9 @@
 /* ================= 番茄钟 & 时间 ================= */
 .widget-time {
-    position: absolute;
-    top: 9%; left: 50%;
-    transform: translateX(-50%);
+    /* position: absolute; REMOVED FOR PLUGIN */
+    /* top: 9%; left: 50%; REMOVED FOR PLUGIN */
+    /* transform: translateX(-50%); REMOVED FOR PLUGIN */
+    position: relative; /* Added for plugin internal positioning */
     color: rgba(255, 255, 255, 0.95);
     text-shadow: 0 4px 20px rgba(0,0,0,0.5);
     z-index: 5;

@@ -1,0 +1,17 @@
+{
+  "id": "com.internal.stats",
+  "name": "System Status",
+  "version": "1.0.0",
+  "description": "CPU and RAM usage monitor",
+  "type": "widget",
+  "entry": {
+    "frontend": "index.js"
+  },
+  "defaultPosition": {
+    "x": 30,
+    "y": 30,
+    "width": 140,
+    "height": 100
+  },
+  "capabilities": ["widget"]
+}

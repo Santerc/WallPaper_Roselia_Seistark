@@ -14,29 +14,8 @@
 
     <!-- Plugin Mode Control (Removed per request) -->
 
-    <!-- System Stats -->
-    <div class="system-stats">
-        <div class="stat-item">
-            <div class="stat-label">CPU</div>
-            <div class="stat-circle">
-                <svg viewBox="0 0 36 36">
-                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path class="circle" id="cpu-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <div class="stat-text" id="cpu-text">0%</div>
-            </div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-label">RAM</div>
-            <div class="stat-circle">
-                <svg viewBox="0 0 36 36">
-                    <path class="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path class="circle" id="ram-ring" stroke-dasharray="0, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                </svg>
-                <div class="stat-text" id="ram-text">0%</div>
-            </div>
-        </div>
-    </div>
+    <!-- System Stats (Migrated to Plugin) -->
+    <!-- Removed static system-stats div -->
 
     <!-- Memo Widget -->
     <div class="memo-container closed" id="memo-widget">
@@ -107,45 +86,10 @@
         </div>
     </div>
 
-    <div class="widget-time" onclick="togglePomodoro()">
-        <!-- Pomodoro Ring Overlay -->
-        <svg class="pomo-svg" viewBox="0 0 100 100">
-            <defs>
-                <linearGradient id="pomo-gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" style="stop-color:#9c88ff;stop-opacity:1" />
-                    <stop offset="50%" style="stop-color:#6c5ce7;stop-opacity:1" />
-                    <stop offset="100%" style="stop-color:#a29bfe;stop-opacity:1" />
-                    <animate attributeName="x1" values="0%;100%;0%" dur="3s" repeatCount="indefinite" />
-                    <animate attributeName="x2" values="100%;200%;100%" dur="3s" repeatCount="indefinite" />
-                </linearGradient>
-            </defs>
-             <circle class="pomo-bg" cx="50" cy="50" r="48"></circle>
-             <circle class="pomo-ring" id="pomo-ring" cx="50" cy="50" r="48" stroke-dasharray="0, 301.6"></circle>
-        </svg>
-        <div class="time-content">
-            <h1 id="clock">00:00</h1>
-            <p id="date">LOADING...</p>
-            <div id="pomo-status" class="pomo-status">WORK 25:00</div>
-        </div>
-        <!-- Settings Button -->
-        <div class="pomo-settings-btn" id="pomo-settings-btn" title="Pomodoro Settings">
-            <img src="assets/Yukina_icon.png" alt="Settings">
-        </div>
-    </div>
+    <!-- Clock Widget migrated to Plugin -->
 
-    <div class="liquid-container">
-        <!-- 灵动球改为水晶按钮 -->
-        <div class="crystal-menu-btn" id="main-orb" onclick="toggleDock()" title="展开菜单">
-            <div class="crystal-content">
-                <div class="status-dot" id="status-indicator"></div>
-            </div>
-        </div>
-
-        <!-- 动态生成的 App Dock -->
-        <div class="app-dock" id="app-dock">
-            <!-- JS 将会在这里注入 .shard-item -->
-        </div>
-    </div>
+    <!-- Dock (App Launcher) Migrated to Plugin -->
+    <!-- Removed .liquid-container from static HTML -->
 
     <!-- 音乐控件保持位置 -->
     <div class="music-widget">

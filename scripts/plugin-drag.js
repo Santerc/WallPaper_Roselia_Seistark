@@ -69,6 +69,18 @@ export class PluginDragManager {
         newX = Math.max(0, Math.min(newX, maxX));
         newY = Math.max(0, Math.min(newY, maxY));
 
+        // Snapping (Adsorption)
+        const SNAP_DIST = 20; // px
+        
+        // Snap to Screen Edges
+        if (Math.abs(newX) < SNAP_DIST) newX = 0;
+        if (Math.abs(newX - maxX) < SNAP_DIST) newX = maxX;
+        if (Math.abs(newY) < SNAP_DIST) newY = 0;
+        if (Math.abs(newY - maxY) < SNAP_DIST) newY = maxY;
+
+        // Snap to Other Plugins (Future extension: get all other rects and snap)
+        // For now, Screen Edges is the primary request "boundary adsorption"
+
         this.draggingEl.style.left = `${newX}px`;
         this.draggingEl.style.top = `${newY}px`;
 

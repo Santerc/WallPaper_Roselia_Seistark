@@ -27,11 +27,11 @@
         }
     ],
     "autoStart": true,
-    "editMode": true,
     "dailyGoals": {
-        "date": "2026-02-11",
+        "date": "2026-02-19",
         "items": []
     },
+    "editMode": true,
     "memos": [],
     "musicPath": "D:/CloudMusic/cloudmusic.exe",
     "pomodoroConfig": {
