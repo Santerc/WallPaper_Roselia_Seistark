@@ -8,6 +8,66 @@
     <script src="https://cdn.jsdelivr.net/npm/pixi.js@6/dist/browser/pixi.min.js"></script>
     <script src="https://cdn.jsdelivr.net/gh/dylanNew/live2d/webgl/Live2D/lib/live2d.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/pixi-live2d-display/dist/cubism2.min.js"></script>
+    <!-- 全局函数占位符，防止 ES6 模块加载前按钮点击报错 -->
+    <script>
+        // 临时占位符，等待 main.js 模块加载完成后会被真实函数替换
+        (function() {
+            const pendingCalls = [];
+            const readyFunctions = {};
+            
+            const createPlaceholder = (name) => {
+                window[name] = function(...args) {
+                    // 如果真实函数已就绪，直接调用
+                    if (readyFunctions[name]) {
+                        return readyFunctions[name](...args);
+                    }
+                    // 否则记录到待处理队列
+                    console.warn(`${name} 尚未加载完成，调用已加入队列`);
+                    pendingCalls.push({ name, args, timestamp: Date.now() });
+                };
+                // 添加标记属性，表示这是占位符
+                window[name].__placeholder = true;
+            };
+            
+            // 为所有 onclick 中使用的函数创建占位符
+            ['mediaControl', 'launchMusicApp', 'toggleLive2D', 'toggleDock', 
+             'toggleSettingsModal', 'launchApp', 'openSidebarTab', 'switchMemoTab',
+             'addNewMemo', 'addGoal', 'togglePomodoro', 'pickFile', 'stopServer',
+             'saveConfig', 'loadConfigToUI', 'switchLang', 'closeBackendModal',
+             'addNewAppSlot', 'removeAppSlot', 'openEditor', 'closeEditor', 'saveEditor',
+             'openMemoEditor', 'toggleMemoStatus', 'requestDeleteMemo', 'cancelDeleteMemo',
+             'confirmDeleteMemo', 'toggleGoal', 'deleteGoal', 'copyToClipboard'
+            ].forEach(createPlaceholder);
+            
+            // 注册真实函数
+            window.__registerRealFunction = function(name, fn) {
+                readyFunctions[name] = fn;
+                window[name] = fn;
+                console.log(`✓ ${name} 已就绪`);
+            };
+            
+            // 处理待处理的调用
+            window.__processPendingCalls = function() {
+                console.log(`处理 ${pendingCalls.length} 个待处理调用...`);
+                const processed = [];
+                pendingCalls.forEach(({ name, args, timestamp }) => {
+                    if (readyFunctions[name]) {
+                        try {
+                            readyFunctions[name](...args);
+                            processed.push(name);
+                        } catch (e) {
+                            console.error(`执行延迟调用 ${name} 时出错:`, e);
+                        }
+                    }
+                });
+                // 清空已处理的调用
+                if (processed.length > 0) {
+                    console.log(`已处理: ${processed.join(', ')}`);
+                }
+                pendingCalls.length = 0;
+            };
+        })();
+    </script>
 </head>
 <body>
 
@@ -71,6 +131,67 @@
         </div>
     </div>
     <button id="live2d-toggle" onclick="toggleLive2D()">▼ HIDE</button>
+
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <!-- 诊断面板：排查播放控制问题 -->
+    <!-- ══════════════════════════════════════════════════════════════ -->
+    <div id="diagnostic-panel" style="
+        position: fixed; bottom: 8px; left: 8px; z-index: 99999;
+        background: rgba(0, 0, 0, 0.92); color: #0f0;
+        font: 11px/1.4 'Consolas', monospace; padding: 12px;
+        border: 1px solid #0f04; border-radius: 6px;
+        max-width: 420px; display: none;
+    ">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+            <b style="color: #0ff;">🔍 播放控制诊断</b>
+            <button onclick="document.getElementById('diagnostic-panel').style.display='none'" 
+                    style="background: #f004; border: 1px solid #f00; color: #fff; 
+                           font-size: 10px; padding: 2px 6px; cursor: pointer; border-radius: 3px;">✕ 关闭</button>
+        </div>
+        
+        <div style="margin-bottom: 8px; padding: 6px; background: rgba(0, 100, 200, 0.1); border-left: 2px solid #0af;">
+            <div style="color: #0af; font-weight: bold; margin-bottom: 4px;">1. 前端函数检查</div>
+            <div id="diag-frontend" style="color: #888;">检查中...</div>
+        </div>
+        
+        <div style="margin-bottom: 8px; padding: 6px; background: rgba(200, 100, 0, 0.1); border-left: 2px solid #fa0;">
+            <div style="color: #fa0; font-weight: bold; margin-bottom: 4px;">2. 后端服务器检查</div>
+            <div id="diag-backend" style="color: #888;">检查中...</div>
+        </div>
+        
+        <div style="margin-bottom: 8px; padding: 6px; background: rgba(100, 200, 0, 0.1); border-left: 2px solid #0f0;">
+            <div style="color: #0f0; font-weight: bold; margin-bottom: 4px;">3. 测试按钮</div>
+            <div style="display: flex; gap: 4px; flex-wrap: wrap; margin-top: 4px;">
+                <button onclick="window.__testMediaControl('prev')" 
+                        style="background: #4005; border: 1px solid #40f; color: #8af; 
+                               font-size: 10px; padding: 4px 8px; cursor: pointer; border-radius: 3px;">⏮ 上一首</button>
+                <button onclick="window.__testMediaControl('play')" 
+                        style="background: #0f05; border: 1px solid #0f0; color: #8f8; 
+                               font-size: 10px; padding: 4px 8px; cursor: pointer; border-radius: 3px;">▶️ 播放</button>
+                <button onclick="window.__testMediaControl('next')" 
+                        style="background: #4005; border: 1px solid #40f; color: #8af; 
+                               font-size: 10px; padding: 4px 8px; cursor: pointer; border-radius: 3px;">⏭ 下一首</button>
+                <button onclick="window.__refreshDiagnostic()" 
+                        style="background: #f805; border: 1px solid #f80; color: #fc8; 
+                               font-size: 10px; padding: 4px 8px; cursor: pointer; border-radius: 3px;">🔄 刷新检查</button>
+            </div>
+        </div>
+        
+        <div id="diag-log" style="margin-top: 8px; padding: 6px; background: rgba(0, 0, 0, 0.3); 
+                                   max-height: 120px; overflow-y: auto; font-size: 10px; color: #999;"></div>
+    </div>
+    
+    <!-- 诊断面板开关按钮 -->
+    <button id="diagnostic-toggle" onclick="
+        const panel = document.getElementById('diagnostic-panel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+        if (panel.style.display === 'block' && window.__refreshDiagnostic) window.__refreshDiagnostic();
+    " style="
+        position: fixed; bottom: 8px; left: 8px; z-index: 100000;
+        background: rgba(0, 0, 0, 0.7); border: 1px solid #0f04;
+        color: #0f0; font: 11px monospace; padding: 6px 10px;
+        border-radius: 4px; cursor: pointer;
+    ">🔍 诊断</button>
 
     <!-- ── 媒体集成 Debug 面板（调试用，确认正常后可隐藏） ── -->
     <div id="media-dbg" style="
@@ -356,6 +477,162 @@
     </script>
     <script type="module" src="scripts/main.js"></script>
     <script src="scripts/live2d.js"></script>
+    
+    <!-- 诊断脚本 -->
+    <script>
+        // 诊断工具
+        (function() {
+            const BACKEND_URL = "http://127.0.0.1:35678";
+            
+            function diagLog(msg, color = '#999') {
+                const logDiv = document.getElementById('diag-log');
+                if (!logDiv) return;
+                const time = new Date().toLocaleTimeString();
+                const line = document.createElement('div');
+                line.style.color = color;
+                line.textContent = `[${time}] ${msg}`;
+                logDiv.appendChild(line);
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
+            
+            // 检查前端函数
+            function checkFrontend() {
+                const div = document.getElementById('diag-frontend');
+                if (!div) return;
+                
+                const functions = ['mediaControl', 'launchMusicApp', 'toggleDock', 'toggleLive2D'];
+                const results = functions.map(name => {
+                    const exists = typeof window[name] === 'function';
+                    const isPlaceholder = window[name] && window[name].__placeholder;
+                    return { name, exists, isPlaceholder };
+                });
+                
+                const allOk = results.every(r => r.exists && !r.isPlaceholder);
+                
+                if (allOk) {
+                    div.innerHTML = '<span style="color: #0f0;">✓ 所有函数已加载</span>';
+                    diagLog('前端函数检查通过', '#0f0');
+                } else {
+                    div.innerHTML = results.map(r => {
+                        if (!r.exists) {
+                            return `<span style="color: #f00;">✗ ${r.name}: 未定义</span>`;
+                        } else if (r.isPlaceholder) {
+                            return `<span style="color: #ff0;">⚠ ${r.name}: 仍是占位符（模块未加载）</span>`;
+                        } else {
+                            return `<span style="color: #0f0;">✓ ${r.name}: 正常</span>`;
+                        }
+                    }).join('<br>');
+                    
+                    const missing = results.filter(r => !r.exists || r.isPlaceholder);
+                    diagLog(`前端问题: ${missing.map(r => r.name).join(', ')} 未就绪`, '#f00');
+                }
+            }
+            
+            // 检查后端服务器
+            async function checkBackend() {
+                const div = document.getElementById('diag-backend');
+                if (!div) return;
+                
+                div.innerHTML = '<span style="color: #ff0;">⏳ 正在连接...</span>';
+                
+                try {
+                    const controller = new AbortController();
+                    const timeout = setTimeout(() => controller.abort(), 3000);
+                    
+                    const response = await fetch(`${BACKEND_URL}/config`, { 
+                        signal: controller.signal 
+                    });
+                    clearTimeout(timeout);
+                    
+                    if (response.ok) {
+                        div.innerHTML = '<span style="color: #0f0;">✓ 后端服务器运行正常</span>';
+                        diagLog('后端服务器连接成功', '#0f0');
+                        
+                        // 测试媒体 API
+                        const mediaRes = await fetch(`${BACKEND_URL}/media/status`);
+                        if (mediaRes.ok) {
+                            const data = await mediaRes.json();
+                            diagLog(`媒体 API 响应: ${JSON.stringify(data).substring(0, 50)}...`, '#0af');
+                        }
+                    } else {
+                        div.innerHTML = `<span style="color: #f00;">✗ HTTP ${response.status}</span>`;
+                        diagLog(`后端响应异常: HTTP ${response.status}`, '#f00');
+                    }
+                } catch (e) {
+                    if (e.name === 'AbortError') {
+                        div.innerHTML = '<span style="color: #f00;">✗ 连接超时（3秒）</span>';
+                        diagLog('后端连接超时 - 服务器可能未运行', '#f00');
+                    } else {
+                        div.innerHTML = `<span style="color: #f00;">✗ ${e.message}</span>`;
+                        diagLog(`后端连接失败: ${e.message}`, '#f00');
+                    }
+                    
+                    div.innerHTML += '<br><span style="color: #fa0;">⚠ 请确保 server.exe 正在运行</span>';
+                    div.innerHTML += '<br><span style="color: #888; font-size: 10px;">路径: ' + BACKEND_URL + '</span>';
+                }
+            }
+            
+            // 测试媒体控制
+            window.__testMediaControl = async function(action) {
+                diagLog(`手动测试: ${action}`, '#0ff');
+                
+                // 先检查函数
+                if (typeof window.mediaControl !== 'function') {
+                    diagLog('错误: mediaControl 函数不存在！', '#f00');
+                    alert('mediaControl 函数不存在！请刷新页面或检查控制台错误。');
+                    return;
+                }
+                
+                if (window.mediaControl.__placeholder) {
+                    diagLog('错误: mediaControl 仍是占位符！main.js 可能未加载', '#f00');
+                    alert('main.js 模块尚未加载完成！请稍后再试。');
+                    return;
+                }
+                
+                // 尝试调用
+                try {
+                    diagLog(`调用 mediaControl('${action}')...`, '#0af');
+                    window.mediaControl(action);
+                    
+                    // 验证请求
+                    setTimeout(async () => {
+                        try {
+                            const res = await fetch(`${BACKEND_URL}/media/status`);
+                            if (res.ok) {
+                                diagLog('✓ 后端收到请求', '#0f0');
+                            }
+                        } catch (e) {
+                            diagLog('✗ 无法验证请求（后端可能未响应）', '#f80');
+                        }
+                    }, 500);
+                    
+                } catch (e) {
+                    diagLog(`调用失败: ${e.message}`, '#f00');
+                    alert(`调用 mediaControl 失败: ${e.message}`);
+                }
+            };
+            
+            // 刷新诊断
+            window.__refreshDiagnostic = function() {
+                diagLog('=== 开始诊断 ===', '#0ff');
+                const logDiv = document.getElementById('diag-log');
+                if (logDiv) logDiv.innerHTML = '';
+                
+                checkFrontend();
+                checkBackend();
+            };
+            
+            // 页面加载后自动检查一次
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', () => {
+                    setTimeout(() => window.__refreshDiagnostic(), 1000);
+                });
+            } else {
+                setTimeout(() => window.__refreshDiagnostic(), 1000);
+            }
+        })();
+    </script>
+    
     <script>
         // Inline fail-safe check
         window.addEventListener('load', function() {

@@ -43,8 +43,28 @@ export async function systemStopServer() {
 
 // 媒体控制
 export function controlMedia(action) {
+    console.log(`[mediaControl] 开始调用: ${action}`);
+    console.log(`[mediaControl] 目标 URL: ${BACKEND_URL}/media/${action}`);
+    
     fetch(`${BACKEND_URL}/media/${action}`)
-        .catch(e => console.error("Media Control Error:", e));
+        .then(res => {
+            console.log(`[mediaControl] 收到响应: HTTP ${res.status} ${res.statusText}`);
+            if (!res.ok) {
+                console.error(`[mediaControl] ✗ 媒体控制失败: ${action} (HTTP ${res.status})`);
+                showToast(`媒体控制失败: ${action}`, "error");
+                return res.text().then(text => {
+                    console.error(`[mediaControl] 响应内容: ${text}`);
+                });
+            } else {
+                console.log(`[mediaControl] ✓ 媒体控制成功: ${action}`);
+                showToast(`已发送: ${action}`, "success");
+            }
+        })
+        .catch(e => {
+            console.error(`[mediaControl] ✗ 请求异常:`, e);
+            console.error(`[mediaControl] 异常类型: ${e.name}, 消息: ${e.message}`);
+            showToast("无法连接后端服务器。请确保 server.exe 正在运行。", "error");
+        });
 }
 
 // 读取当前系统媒体信息（SMTC via Python winsdk）

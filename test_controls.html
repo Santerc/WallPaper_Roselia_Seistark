@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>播放控制测试页面</title>
+    <style>
+        body {
+            font-family: 'Consolas', 'Microsoft YaHei', monospace;
+            background: #1a1a1a;
+            color: #0f0;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        h1 { color: #0ff; }
+        .section {
+            background: rgba(0, 100, 100, 0.1);
+            border: 1px solid #0ff;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        .section h2 {
+            color: #0af;
+            margin-top: 0;
+            font-size: 16px;
+        }
+        .status {
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .status.ok { background: rgba(0, 255, 0, 0.1); border-left: 3px solid #0f0; }
+        .status.error { background: rgba(255, 0, 0, 0.1); border-left: 3px solid #f00; }
+        .status.warn { background: rgba(255, 200, 0, 0.1); border-left: 3px solid #fc0; }
+        button {
+            background: rgba(0, 150, 255, 0.2);
+            border: 1px solid #0af;
+            color: #0ff;
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        button:hover {
+            background: rgba(0, 150, 255, 0.4);
+            border-color: #0ff;
+        }
+        button:active {
+            background: rgba(0, 150, 255, 0.6);
+        }
+        #log {
+            background: #000;
+            border: 1px solid #333;
+            padding: 10px;
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .log-entry {
+            margin: 2px 0;
+        }
+        .log-info { color: #0af; }
+        .log-success { color: #0f0; }
+        .log-error { color: #f00; }
+        .log-warn { color: #fc0; }
+    </style>
+</head>
+<body>
+    <h1>🎵 播放控制测试工具</h1>
+    
+    <div class="section">
+        <h2>1️⃣ 后端服务器状态</h2>
+        <div id="backend-status" class="status">检查中...</div>
+        <button onclick="checkBackend()">🔄 刷新检查</button>
+    </div>
+    
+    <div class="section">
+        <h2>2️⃣ 媒体控制测试</h2>
+        <div>
+            <button onclick="testMedia('prev')">⏮️ 上一首</button>
+            <button onclick="testMedia('play')">▶️ 播放/暂停</button>
+            <button onclick="testMedia('next')">⏭️ 下一首</button>
+        </div>
+        <div style="margin-top: 10px;">
+            <button onclick="testMedia('pause')">⏸️ 暂停</button>
+            <button onclick="testMedia('stop')">⏹️ 停止</button>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h2>3️⃣ 媒体状态查询</h2>
+        <div id="media-status" class="status">未查询</div>
+        <button onclick="queryMediaStatus()">📊 查询当前播放状态</button>
+    </div>
+    
+    <div class="section">
+        <h2>📋 日志输出</h2>
+        <button onclick="clearLog()">🗑️ 清空日志</button>
+        <div id="log"></div>
+    </div>
+
+    <script>
+        const BACKEND_URL = "http://127.0.0.1:35678";
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('log');
+            const time = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            entry.textContent = `[${time}] ${message}`;
+            logDiv.appendChild(entry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+        
+        function clearLog() {
+            document.getElementById('log').innerHTML = '';
+        }
+        
+        async function checkBackend() {
+            const statusDiv = document.getElementById('backend-status');
+            statusDiv.className = 'status';
+            statusDiv.textContent = '⏳ 正在检查...';
+            log('开始检查后端服务器...', 'info');
+            
+            try {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 3000);
+                
+                const response = await fetch(`${BACKEND_URL}/config`, { 
+                    signal: controller.signal 
+                });
+                clearTimeout(timeout);
+                
+                if (response.ok) {
+                    statusDiv.className = 'status ok';
+                    statusDiv.textContent = '✅ 后端服务器运行正常';
+                    log('✓ 后端服务器连接成功', 'success');
+                    
+                    // 额外测试媒体 API
+                    try {
+                        const mediaRes = await fetch(`${BACKEND_URL}/media/status`);
+                        if (mediaRes.ok) {
+                            log('✓ 媒体 API 可用', 'success');
+                        } else {
+                            log(`⚠ 媒体 API 响应异常: HTTP ${mediaRes.status}`, 'warn');
+                        }
+                    } catch (e) {
+                        log(`⚠ 媒体 API 测试失败: ${e.message}`, 'warn');
+                    }
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ HTTP 错误: ${response.status}`;
+                    log(`✗ 后端响应异常: HTTP ${response.status}`, 'error');
+                }
+            } catch (e) {
+                if (e.name === 'AbortError') {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ 连接超时 - 服务器未运行';
+                    log('✗ 后端连接超时（3秒）', 'error');
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ ${e.message}`;
+                    log(`✗ 连接失败: ${e.message}`, 'error');
+                }
+                
+                log('💡 请确保 server.exe 已启动', 'info');
+                log(`   后端地址: ${BACKEND_URL}`, 'info');
+            }
+        }
+        
+        async function testMedia(action) {
+            log(`尝试媒体控制: ${action}`, 'info');
+            
+            try {
+                const url = `${BACKEND_URL}/media/${action}`;
+                log(`请求 URL: ${url}`, 'info');
+                
+                const response = await fetch(url);
+                
+                if (response.ok) {
+                    log(`✓ 媒体控制成功: ${action}`, 'success');
+                    const text = await response.text();
+                    if (text) {
+                        log(`  响应: ${text}`, 'info');
+                    }
+                } else {
+                    log(`✗ 媒体控制失败: ${action} (HTTP ${response.status})`, 'error');
+                    const text = await response.text();
+                    if (text) {
+                        log(`  错误信息: ${text}`, 'error');
+                    }
+                }
+            } catch (e) {
+                log(`✗ 请求异常: ${e.message}`, 'error');
+            }
+        }
+        
+        async function queryMediaStatus() {
+            const statusDiv = document.getElementById('media-status');
+            statusDiv.className = 'status';
+            statusDiv.textContent = '⏳ 查询中...';
+            log('查询媒体状态...', 'info');
+            
+            try {
+                const response = await fetch(`${BACKEND_URL}/media/status`);
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    statusDiv.className = 'status ok';
+                    statusDiv.innerHTML = `
+                        <strong>当前播放:</strong><br>
+                        标题: ${data.title || '(无)'}<br>
+                        艺术家: ${data.artist || '(无)'}<br>
+                        状态: ${data.state || '(无)'} (代码: ${data.stateCode})<br>
+                        进度: ${data.position}s / ${data.duration}s
+                    `;
+                    log('✓ 媒体状态查询成功', 'success');
+                    log(`  ${JSON.stringify(data, null, 2)}`, 'info');
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = `❌ 查询失败: HTTP ${response.status}`;
+                    log(`✗ 媒体状态查询失败: HTTP ${response.status}`, 'error');
+                }
+            } catch (e) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ ${e.message}`;
+                log(`✗ 查询异常: ${e.message}`, 'error');
+            }
+        }
+        
+        // 页面加载时自动检查
+        window.addEventListener('load', () => {
+            log('=== 播放控制测试工具已启动 ===', 'success');
+            log(`后端地址: ${BACKEND_URL}`, 'info');
+            checkBackend();
+        });
+    </script>
+</body>
+</html>

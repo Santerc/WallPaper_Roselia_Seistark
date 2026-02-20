@@ -15,35 +15,63 @@ import { initScrollFix } from './scroll_fix.js';
 // ==========================================
 // 全局绑定 (为了让 HTML onclick 工作)
 // ==========================================
-window.toggleDock = toggleDock;
-window.toggleSettingsModal = toggleSettingsModal;
-window.launchApp = launchApp;
-window.launchMusicApp = launchMusicApp;
-window.mediaControl = controlMedia;
-window.addNewAppSlot = addNewAppSlot;
-window.removeAppSlot = removeAppSlot;
-window.openEditor = openEditor;
-window.closeEditor = closeEditor; // HTML 中可能没有直接调用，但为了完整性
-window.saveEditor = saveEditor; // 通常绑定在按钮上
-window.pickFile = pickFile;
-window.stopServer = stopServer;
-window.saveConfig = saveConfig;
-window.loadConfigToUI = loadConfigToUI; // 让 goals.js 等调用
-window.togglePomodoro = togglePomodoro;
-window.addNewMemo = addNewMemoAction;
-window.openMemoEditor = openMemoEditor;
-window.toggleMemoStatus = toggleMemoStatus;
-window.requestDeleteMemo = requestDeleteMemo;
-window.cancelDeleteMemo = cancelDeleteMemo;
-window.confirmDeleteMemo = confirmDeleteMemo;
-window.addGoal = addGoal;
-window.toggleGoal = toggleGoal;
-window.deleteGoal = deleteGoal;
-window.openSidebarTab = openSidebarTab;
-window.switchMemoTab = switchMemoTab;
-window.closeBackendModal = closeBackendModal;
-window.switchLang = switchLang;
-window.copyToClipboard = copyToClipboard;
+// 使用安全绑定模式，支持占位符机制
+const bindGlobal = (name, fn) => {
+    if (typeof window.__registerRealFunction === 'function') {
+        // 使用注册机制（占位符系统存在）
+        window.__registerRealFunction(name, fn);
+    } else {
+        // 直接绑定（占位符系统不存在或已禁用）
+        window[name] = fn;
+        console.log(`✓ ${name} 已绑定（直接模式）`);
+    }
+};
+
+console.log('[main.js] 开始绑定全局函数...');
+
+bindGlobal('toggleDock', toggleDock);
+bindGlobal('toggleSettingsModal', toggleSettingsModal);
+bindGlobal('launchApp', launchApp);
+bindGlobal('launchMusicApp', launchMusicApp);
+bindGlobal('mediaControl', controlMedia);
+bindGlobal('addNewAppSlot', addNewAppSlot);
+bindGlobal('removeAppSlot', removeAppSlot);
+bindGlobal('openEditor', openEditor);
+bindGlobal('closeEditor', closeEditor);
+bindGlobal('saveEditor', saveEditor);
+bindGlobal('pickFile', pickFile);
+bindGlobal('stopServer', stopServer);
+bindGlobal('saveConfig', saveConfig);
+bindGlobal('loadConfigToUI', loadConfigToUI);
+bindGlobal('togglePomodoro', togglePomodoro);
+bindGlobal('addNewMemo', addNewMemoAction);
+bindGlobal('openMemoEditor', openMemoEditor);
+bindGlobal('toggleMemoStatus', toggleMemoStatus);
+bindGlobal('requestDeleteMemo', requestDeleteMemo);
+bindGlobal('cancelDeleteMemo', cancelDeleteMemo);
+bindGlobal('confirmDeleteMemo', confirmDeleteMemo);
+bindGlobal('addGoal', addGoal);
+bindGlobal('toggleGoal', toggleGoal);
+bindGlobal('deleteGoal', deleteGoal);
+bindGlobal('openSidebarTab', openSidebarTab);
+bindGlobal('switchMemoTab', switchMemoTab);
+bindGlobal('closeBackendModal', closeBackendModal);
+bindGlobal('switchLang', switchLang);
+bindGlobal('copyToClipboard', copyToClipboard);
+
+console.log('[main.js] 全局函数绑定完成');
+
+// 处理在加载期间累积的待处理调用
+if (typeof window.__processPendingCalls === 'function') {
+    console.log('[main.js] 处理待处理调用...');
+    setTimeout(() => window.__processPendingCalls(), 100);
+}
+
+// 调试：确认所有函数已正确绑定
+console.log('✓ main.js 已加载完成，所有全局函数已就绪');
+console.log('  - mediaControl:', typeof window.mediaControl, window.mediaControl?.__placeholder ? '(占位符)' : '(真实函数)');
+console.log('  - launchMusicApp:', typeof window.launchMusicApp, window.launchMusicApp?.__placeholder ? '(占位符)' : '(真实函数)');
+console.log('  - toggleDock:', typeof window.toggleDock, window.toggleDock?.__placeholder ? '(占位符)' : '(真实函数)');
 
 
 // ==========================================

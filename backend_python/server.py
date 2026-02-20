@@ -435,46 +435,26 @@ def set_autostart(enable):
     except Exception as e:
         print(f"Registry error: {e}")
 
-# ── 媒体控制：SendInput + KEYEVENTF_EXTENDEDKEY ───────────────────────────────
+# ── 媒体控制：使用 keybd_event API ───────────────────────────────
 VK_MEDIA_PLAY_PAUSE = 0xB3
 VK_MEDIA_NEXT_TRACK = 0xB0
 VK_MEDIA_PREV_TRACK = 0xB1
-KEYEVENTF_KEYUP      = 0x0002
 KEYEVENTF_EXTENDEDKEY = 0x0001
-INPUT_KEYBOARD       = 1
-
-class KEYBDINPUT(ctypes.Structure):
-    _fields_ = [
-        ('wVk',         ctypes.c_ushort),
-        ('wScan',       ctypes.c_ushort),
-        ('dwFlags',     ctypes.c_ulong),
-        ('time',        ctypes.c_ulong),
-        ('dwExtraInfo', ctypes.POINTER(ctypes.c_ulong)),
-    ]
-
-class _INPUT_UNION(ctypes.Union):
-    _fields_ = [('ki', KEYBDINPUT)]
-
-class INPUT(ctypes.Structure):
-    _fields_ = [('type', ctypes.c_ulong), ('union', _INPUT_UNION)]
+KEYEVENTF_KEYUP       = 0x0002
 
 _user32 = ctypes.windll.user32
 
 def send_media_key(vk):
-    """用 SendInput + KEYEVENTF_EXTENDEDKEY 发送媒体键（不依赖焦点）"""
-    def _make(flags):
-        inp = INPUT()
-        inp.type = INPUT_KEYBOARD
-        inp.union.ki.wVk = vk
-        inp.union.ki.wScan = 0
-        inp.union.ki.dwFlags = flags
-        inp.union.ki.time = 0
-        inp.union.ki.dwExtraInfo = ctypes.pointer(ctypes.c_ulong(0))
-        return inp
-    press   = _make(KEYEVENTF_EXTENDEDKEY)
-    release = _make(KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP)
-    arr = (INPUT * 2)(press, release)
-    _user32.SendInput(2, arr, ctypes.sizeof(INPUT))
+    """用 keybd_event 发送媒体键（简单可靠）"""
+    try:
+        # Press
+        _user32.keybd_event(vk, 0, KEYEVENTF_EXTENDEDKEY, 0)
+        # Release
+        _user32.keybd_event(vk, 0, KEYEVENTF_EXTENDEDKEY | KEYEVENTF_KEYUP, 0)
+        return True
+    except Exception as e:
+        print(f"[MEDIA] keybd_event 失败: {e}")
+        return False
 
 
 
